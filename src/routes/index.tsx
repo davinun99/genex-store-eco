@@ -3,11 +3,15 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useState, useEffect } from "react";
-import { inventario, type InventarioCategory, type InventarioProduct } from "@/integrations/inventario/client";
+import {
+  inventario,
+  type InventarioCategory,
+  type InventarioProduct,
+} from "@/integrations/inventario/client";
 import { Header } from "@/components/header";
 import { ProductCard } from "@/components/product-card";
 import { STORE } from "@/lib/store-config";
-import { ArrowRight, ShieldCheck, Truck, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 12;
 
@@ -26,7 +30,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: `${STORE.name} — Comprar online en Paraguay` },
-      { name: "description", content: `Catalogo de ${STORE.name}: accesorios, vidrios, perfumes y mas. Pedidos online con pago por transferencia.` },
+      {
+        name: "description",
+        content: `Catalogo de ${STORE.name}: accesorios, vidrios, perfumes y mas. Pedidos online con pago por transferencia.`,
+      },
       { property: "og:title", content: STORE.name },
       { property: "og:description", content: STORE.tagline },
     ],
@@ -72,7 +79,10 @@ function Home() {
       const to = from + PAGE_SIZE - 1;
       let query = inventario
         .from("products")
-        .select("id,name,sku,description,current_stock,min_stock,purchase_price,sale_price,is_active,category_id,created_at,updated_at", { count: "exact" })
+        .select(
+          "id,name,sku,description,current_stock,min_stock,purchase_price,sale_price,is_active,category_id,created_at,updated_at",
+          { count: "exact" },
+        )
         .eq("is_active", true)
         .order("name", { ascending: true })
         .range(from, to);
@@ -105,82 +115,50 @@ function Home() {
     <div className="min-h-screen bg-background">
       <Header onSearch={setSearchInput} searchValue={searchInput} />
 
-      {/* Hero */}
-      <section className="border-b border-border bg-gradient-to-br from-[var(--color-surface-strong)] via-background to-[var(--color-accent)]">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-20">
-          <div className="flex flex-col justify-center gap-5">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-[var(--color-brand)]" />
-              Tienda online en Paraguay
-            </span>
-            <h1 className="font-display text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-              Tecnologia y accesorios al alcance de un clic.
-            </h1>
-            <p className="max-w-lg text-base text-muted-foreground">
-              Pedidos en guaranies, pago por transferencia y envio de comprobante en segundos.
-              Stock en tiempo real desde nuestro inventario.
+      <section className="border-b border-black bg-black text-white">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
+          <div className="max-w-4xl">
+            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/55">
+              Tienda online · Paraguay
             </p>
-            <div className="flex flex-wrap gap-3">
+            <h1 className="font-display text-5xl font-bold leading-[0.92] tracking-[-0.065em] sm:text-7xl lg:text-8xl">
+              LO QUE BUSCÁS.
+              <br />
+              SIN COMPLICACIONES.
+            </h1>
+            <p className="mt-7 max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">
+              Tecnología y accesorios con stock real. Elegí, agregá al carrito y coordinamos la
+              entrega.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#catalogo"
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:opacity-90"
+                className="inline-flex items-center gap-2 border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
               >
-                Ver catalogo <ArrowRight className="size-4" />
+                Ver catálogo <ArrowRight className="size-4" />
               </a>
               <a
                 href={`https://wa.me/${STORE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-[var(--color-surface)] px-5 py-3 text-sm font-semibold transition hover:bg-[var(--color-surface-strong)]"
+                className="inline-flex items-center gap-2 border border-white/35 px-5 py-3 text-sm font-semibold transition hover:border-white"
               >
                 <MessageCircle className="size-4" /> WhatsApp
               </a>
             </div>
           </div>
-          <div className="relative hidden items-center justify-center lg:flex">
-            <div className="relative h-72 w-72 rounded-3xl border border-border bg-[var(--color-surface)] p-8 shadow-xl">
-              <div className="absolute -right-6 -top-6 h-32 w-32 rounded-2xl bg-[var(--color-brand)]" />
-              <div className="relative flex h-full flex-col justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-widest text-muted-foreground">Destacado</div>
-                  <div className="mt-2 font-display text-2xl font-bold">Stock real, precio claro.</div>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Nuestro catalogo se sincroniza con el inventario interno: nunca te ofrecemos lo que no tenemos.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Trust strip */}
-      <section className="border-b border-border bg-[var(--color-surface)]">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:grid-cols-3 sm:px-6 lg:px-8">
-          {[
-            { icon: ShieldCheck, title: "Pago seguro", desc: "Transferencia o alias, comprobante adjunto." },
-            { icon: Truck, title: "Coordinamos entrega", desc: "Te contactamos al confirmar el pago." },
-            { icon: MessageCircle, title: "Atencion personal", desc: "Resolvemos por WhatsApp en el dia." },
-          ].map((f) => (
-            <div key={f.title} className="flex items-start gap-3">
-              <div className="rounded-lg bg-[var(--color-surface-strong)] p-2.5">
-                <f.icon className="size-5" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold">{f.title}</div>
-                <div className="text-xs text-muted-foreground">{f.desc}</div>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
       {/* Catalog */}
-      <section id="catalogo" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <section id="catalogo" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="flex flex-wrap items-end justify-between gap-3 pb-6">
           <div>
-            <h2 className="font-display text-2xl font-bold sm:text-3xl">
-              {cat === "all" ? "Catalogo" : categoryName(cat) ?? "Catalogo"}
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              Productos
+            </p>
+            <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.045em] sm:text-4xl">
+              {cat === "all" ? "Catálogo" : (categoryName(cat) ?? "Catálogo")}
             </h2>
             <p className="text-sm text-muted-foreground">
               {productsQuery.isLoading
@@ -196,7 +174,7 @@ function Home() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Buscar productos..."
-            className="h-11 w-full rounded-full border border-border bg-[var(--color-surface)] px-4 text-sm outline-none focus:border-[var(--color-ring)]"
+            className="h-11 w-full border-0 border-b border-black/20 bg-white px-1 text-sm outline-none focus:border-black"
           />
         </div>
 
@@ -204,7 +182,7 @@ function Home() {
         <div className="mb-6 -mx-1 flex flex-nowrap gap-2 overflow-x-auto px-1 pb-2 sm:flex-wrap sm:overflow-visible">
           <button
             onClick={() => setCat("all")}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`shrink-0 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition ${
               cat === "all"
                 ? "border-transparent bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
                 : "border-border bg-[var(--color-surface)] hover:bg-[var(--color-surface-strong)]"
@@ -218,8 +196,9 @@ function Home() {
               <button
                 key={c.id}
                 onClick={() => setCat(c.id === OTROS_PRIMARY_ID ? OTROS_PRIMARY_ID : c.id)}
-                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
-                  (OTROS_IDS.includes(cat) && c.id === OTROS_PRIMARY_ID) || (cat === c.id && !OTROS_IDS.includes(cat))
+                className={`shrink-0 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition ${
+                  (OTROS_IDS.includes(cat) && c.id === OTROS_PRIMARY_ID) ||
+                  (cat === c.id && !OTROS_IDS.includes(cat))
                     ? "border-transparent bg-(--color-primary) text-(--color-primary-foreground)"
                     : "border-border bg-(--color-surface) hover:bg-(--color-surface-strong)"
                 }`}
@@ -231,14 +210,18 @@ function Home() {
 
         {error && (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
-            No pudimos cargar los productos. Verifica que la base de Inventario Amigo permita lectura publica para visitantes.
+            No pudimos cargar los productos. Verifica que la base de Inventario Amigo permita
+            lectura publica para visitantes.
           </div>
         )}
 
         {productsQuery.isLoading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-[var(--color-surface-strong)]" />
+              <div
+                key={i}
+                className="aspect-[3/4] animate-pulse rounded-2xl bg-[var(--color-surface-strong)]"
+              />
             ))}
           </div>
         ) : (productsQuery.data?.items.length ?? 0) === 0 ? (
@@ -247,7 +230,9 @@ function Home() {
           </div>
         ) : (
           <>
-            <div className={`grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${productsQuery.isFetching ? "opacity-60" : ""}`}>
+            <div
+              className={`grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${productsQuery.isFetching ? "opacity-60" : ""}`}
+            >
               {productsQuery.data!.items.map((p) => (
                 <ProductCard key={p.id} product={p} categoryName={categoryName(p.category_id)} />
               ))}
@@ -260,12 +245,18 @@ function Home() {
         )}
       </section>
 
-      <footer className="border-t border-border bg-[var(--color-surface)] py-10">
-        <div className="mx-auto max-w-7xl px-4 text-center text-xs text-muted-foreground sm:px-6 lg:px-8">
-          <div className="font-display text-base font-bold text-foreground">{STORE.name}</div>
-          <div className="mt-1">{STORE.tagline} · WhatsApp +{STORE.whatsapp}</div>
+      <footer className="border-t border-white/10 bg-black py-12 text-white">
+        <div className="mx-auto max-w-7xl px-4 text-center text-xs text-white/50 sm:px-6 lg:px-8">
+          <div className="font-display text-2xl font-bold tracking-[-0.08em] text-white">
+            GENEX.
+          </div>
+          <div className="mt-1">
+            {STORE.tagline} · WhatsApp +{STORE.whatsapp}
+          </div>
           <div className="mt-3">
-            <Link to="/checkout" className="underline-offset-2 hover:underline">Finalizar compra</Link>
+            <Link to="/checkout" className="underline-offset-2 hover:underline">
+              Finalizar compra
+            </Link>
           </div>
         </div>
       </footer>
@@ -273,7 +264,15 @@ function Home() {
   );
 }
 
-function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
+function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
+}) {
   const pages: (number | "...")[] = [];
   const push = (n: number | "...") => pages.push(n);
   const window = 1;
@@ -296,7 +295,9 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       </button>
       {pages.map((p, idx) =>
         p === "..." ? (
-          <span key={`e-${idx}`} className="px-2 text-xs text-muted-foreground">…</span>
+          <span key={`e-${idx}`} className="px-2 text-xs text-muted-foreground">
+            …
+          </span>
         ) : (
           <button
             key={p}

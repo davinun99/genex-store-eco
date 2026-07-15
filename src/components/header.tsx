@@ -11,17 +11,15 @@ interface HeaderProps {
 export function Header({ onSearch, searchValue }: HeaderProps) {
   const { totalItems, setOpen } = useCart();
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-[var(--color-brand)] text-[var(--color-brand-foreground)] font-bold">
-            G
-          </span>
-          <div className="leading-tight">
-            <div className="font-display text-base font-bold tracking-tight">{STORE.name}</div>
-            <div className="hidden text-[11px] uppercase tracking-widest text-muted-foreground sm:block">
-              {STORE.tagline}
-            </div>
+    <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur-md">
+      <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <Link to="/" className="group leading-none" aria-label={`${STORE.name}, inicio`}>
+          <div className="font-display text-2xl font-bold tracking-[-0.08em] transition-opacity group-hover:opacity-60">
+            GENEX
+            <span className="ml-1 inline-block size-1.5 rounded-full bg-black" />
+          </div>
+          <div className="mt-1 text-center text-[8px] font-semibold uppercase tracking-[0.48em]">
+            Store
           </div>
         </Link>
 
@@ -32,19 +30,19 @@ export function Header({ onSearch, searchValue }: HeaderProps) {
               value={searchValue ?? ""}
               onChange={(e) => onSearch(e.target.value)}
               placeholder="Buscar productos..."
-              className="h-10 w-full rounded-full border border-border bg-[var(--color-surface)] pl-9 pr-4 text-sm outline-none transition focus:border-[var(--color-ring)] focus:ring-2 focus:ring-[var(--color-ring)]/30"
+              className="h-10 w-full rounded-none border-0 border-b border-black/20 bg-transparent pl-9 pr-4 text-sm outline-none transition placeholder:text-black/40 focus:border-black"
             />
           </div>
         )}
 
         <button
           onClick={() => setOpen(true)}
-          className={`relative ml-auto inline-flex h-10 items-center gap-2 rounded-full border border-border bg-[var(--color-surface)] px-4 text-sm font-medium transition hover:bg-[var(--color-surface-strong)] ${onSearch ? "md:ml-0" : ""}`}
+          className={`relative ml-auto inline-flex h-10 items-center gap-2 border border-black bg-black px-4 text-sm font-semibold text-white transition hover:bg-white hover:text-black ${onSearch ? "md:ml-0" : ""}`}
         >
           <ShoppingBag className="size-4" />
           <span className="hidden sm:inline">Carrito</span>
           {totalItems > 0 && (
-            <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--color-brand)] px-1.5 text-[11px] font-bold text-[var(--color-brand-foreground)]">
+            <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1.5 text-[11px] font-bold text-black">
               {totalItems}
             </span>
           )}

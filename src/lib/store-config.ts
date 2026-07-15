@@ -1,6 +1,6 @@
 export const STORE = {
   name: "Genex Store",
-  tagline: "Tecnologia, accesorios y mas",
+  tagline: "Tecnología y accesorios",
   whatsapp: "595984849454",
   email: "nunezbenitezpablo@gmail.com",
 };

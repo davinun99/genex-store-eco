@@ -6,8 +6,7 @@
 
 /*
  * Genex Store design system.
- * Brand: dark warm-neutral background, bold cream surface,
- * electric lime accent for a tech-store feel without purple.
+ * Brand: monochrome, direct and minimal to match the GENEX wordmark.
  */
 
 @theme inline {
@@ -48,15 +47,15 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.25rem;
 
   /* Warm light surface */
-  --background: oklch(0.985 0.005 95);
-  --foreground: oklch(0.18 0.02 70);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.08 0 0);
 
   --ink: oklch(0.13 0.02 70);
   --surface: oklch(1 0 0);
-  --surface-strong: oklch(0.96 0.008 90);
+  --surface-strong: oklch(0.96 0 0);
 
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.02 70);
@@ -68,20 +67,20 @@
   --primary-foreground: oklch(0.985 0.005 95);
 
   /* Brand accent — electric lime/yellow */
-  --brand: oklch(0.86 0.19 110);
-  --brand-foreground: oklch(0.18 0.02 70);
+  --brand: oklch(0.08 0 0);
+  --brand-foreground: oklch(1 0 0);
 
   --secondary: oklch(0.94 0.01 90);
   --secondary-foreground: oklch(0.2 0.02 70);
   --muted: oklch(0.95 0.008 90);
   --muted-foreground: oklch(0.45 0.02 70);
-  --accent: oklch(0.93 0.02 110);
+  --accent: oklch(0.96 0 0);
   --accent-foreground: oklch(0.18 0.02 70);
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.985 0.005 95);
   --border: oklch(0.9 0.01 90);
   --input: oklch(0.92 0.01 90);
-  --ring: oklch(0.7 0.15 110);
+  --ring: oklch(0.08 0 0);
 }
 
 .dark {
@@ -115,13 +114,20 @@
   * {
     border-color: var(--color-border);
   }
-  html, body {
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4 {
+  html {
+    scroll-behavior: smooth;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
