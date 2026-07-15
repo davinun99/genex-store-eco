@@ -13,14 +13,16 @@ export function Header({ onSearch, searchValue }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="group leading-none" aria-label={`${STORE.name}, inicio`}>
-          <div className="font-display text-2xl font-bold tracking-[-0.08em] transition-opacity group-hover:opacity-60">
-            GENEX
-            <span className="ml-1 inline-block size-1.5 rounded-full bg-black" />
-          </div>
-          <div className="mt-1 text-center text-[8px] font-semibold uppercase tracking-[0.48em]">
-            Store
-          </div>
+        <Link
+          to="/"
+          className="relative block h-[42px] w-[130px] shrink-0 overflow-hidden transition-opacity hover:opacity-60"
+          aria-label={`${STORE.name}, inicio`}
+        >
+          <img
+            src="/icons/genex_logo.jpeg"
+            alt="Genex Store"
+            className="pointer-events-none absolute left-[-13px] top-[-64px] h-auto w-[154px] max-w-none select-none"
+          />
         </Link>
 
         {onSearch && (

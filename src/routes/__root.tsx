@@ -79,7 +79,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: `${STORE.name} — ${STORE.tagline}` },
-      { name: "description", content: `${STORE.name}: tienda online con pago por transferencia bancaria y envio de comprobante.` },
+      {
+        name: "description",
+        content: `${STORE.name}: tienda online con pago por transferencia bancaria y envio de comprobante.`,
+      },
       { property: "og:title", content: STORE.name },
       { property: "og:description", content: STORE.tagline },
       { property: "og:type", content: "website" },
@@ -90,11 +93,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Tu tienda de accesorios y tecnologia" },
       { property: "og:description", content: "Tu tienda de accesorios y tecnologia" },
       { name: "twitter:description", content: "Tu tienda de accesorios y tecnologia" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/PKe8uW2JULbKZF7te5WoKu6h1y73/social-images/social-1782328368721-genex_store.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/PKe8uW2JULbKZF7te5WoKu6h1y73/social-images/social-1782328368721-genex_store.webp" },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/PKe8uW2JULbKZF7te5WoKu6h1y73/social-images/social-1782328368721-genex_store.webp",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/PKe8uW2JULbKZF7te5WoKu6h1y73/social-images/social-1782328368721-genex_store.webp",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: "/icons/genex_logo.jpeg", type: "image/jpeg" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap",
