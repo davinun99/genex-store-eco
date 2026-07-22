@@ -20,7 +20,13 @@ function ProductPage() {
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
-      const { data, error } = await inventario.from("products").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await inventario
+        .from("products")
+        .select("*")
+        .eq("id", id)
+        .eq("is_active", true)
+        .gt("current_stock", 0)
+        .maybeSingle();
       if (error) throw error;
       return data as InventarioProduct | null;
     },
@@ -55,7 +61,6 @@ function ProductPage() {
               </span>
             </div>
             <div className="flex flex-col gap-4">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">SKU {product.sku}</div>
               <h1 className="font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{product.name}</h1>
               <div className="font-display text-3xl font-bold">{formatGs(product.sale_price)}</div>
 

@@ -41,7 +41,6 @@ export function CartDrawer() {
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-semibold leading-snug">{item.name}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">SKU {item.sku}</div>
                     <div className="mt-2 flex items-center justify-between">
                       <div className="inline-flex items-center rounded-full border border-border">
                         <button

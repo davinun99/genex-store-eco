@@ -84,6 +84,7 @@ function Home() {
           { count: "exact" },
         )
         .eq("is_active", true)
+        .gt("current_stock", 0)
         .order("name", { ascending: true })
         .range(from, to);
       if (cat !== "all") {
@@ -107,7 +108,10 @@ function Home() {
   const error = productsQuery.error || categoriesQuery.error;
 
   const setCat = (newCat: string) =>
-    navigate({ search: (prev: SearchParams) => ({ ...prev, cat: newCat, page: 1 }) });
+    navigate({
+      search: (prev: SearchParams) => ({ ...prev, cat: newCat, page: 1 }),
+      resetScroll: false,
+    });
   const setPage = (newPage: number) =>
     navigate({ search: (prev: SearchParams) => ({ ...prev, page: newPage }) });
 
