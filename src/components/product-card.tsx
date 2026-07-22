@@ -44,9 +44,7 @@ export function ProductCard({
         >
           {product.name}
         </Link>
-        <div className="text-xs text-muted-foreground">
-          SKU {product.sku} · Stock {product.current_stock}
-        </div>
+        <div className="text-xs text-muted-foreground">Stock {product.current_stock}</div>
         <div className="mt-auto flex items-center justify-between pt-3">
           <div className="font-display text-lg font-bold">{formatGs(product.sale_price)}</div>
           <button
