@@ -9,6 +9,8 @@ This app builds for Cloudflare Pages through Nitro's `cloudflare-pages` preset.
 - Build output directory: `dist`
 - Runtime: Pages Functions, generated at `dist/_worker.js`
 
+`wrangler.toml` sets `pages_build_output_dir = "dist"` so Cloudflare CI / `wrangler pages deploy` knows which folder to upload. Without it, deploy fails with “Must specify a directory of assets to deploy.”
+
 ## Local Commands
 
 ```sh
