@@ -11,9 +11,9 @@ const INVENTARIO_KEY =
 
 export const inventario = createClient(INVENTARIO_URL!, INVENTARIO_KEY!, {
   auth: {
-    storage: undefined,
-    persistSession: false,
-    autoRefreshToken: false,
+    storage: typeof window !== "undefined" ? localStorage : undefined,
+    persistSession: typeof window !== "undefined",
+    autoRefreshToken: typeof window !== "undefined",
   },
 });
 
@@ -30,6 +30,7 @@ export interface InventarioProduct {
   category_id: string;
   created_at: string;
   updated_at: string;
+  image_url: string | null;
 }
 
 export interface InventarioCategory {

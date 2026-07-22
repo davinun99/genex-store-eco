@@ -21,9 +21,17 @@ export function ProductCard({
         params={{ id: product.id }}
         className="relative flex aspect-square items-center justify-center bg-[#f4f4f2]"
       >
-        <span className="font-display text-6xl font-bold text-black/10 transition-transform duration-300 group-hover:scale-110">
-          {product.name.charAt(0).toUpperCase()}
-        </span>
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <span className="font-display text-6xl font-bold text-black/10 transition-transform duration-300 group-hover:scale-110">
+            {product.name.charAt(0).toUpperCase()}
+          </span>
+        )}
         {categoryName && (
           <span className="absolute left-3 top-3 bg-white px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-black/60">
             {categoryName}

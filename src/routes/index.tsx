@@ -80,7 +80,7 @@ function Home() {
       let query = inventario
         .from("products")
         .select(
-          "id,name,sku,description,current_stock,min_stock,purchase_price,sale_price,is_active,category_id,created_at,updated_at",
+          "id,name,sku,description,current_stock,min_stock,purchase_price,sale_price,is_active,category_id,created_at,updated_at,image_url",
           { count: "exact" },
         )
         .eq("is_active", true)
