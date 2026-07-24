@@ -132,3 +132,12 @@
     letter-spacing: -0.02em;
   }
 }
+
+.category-track {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-track::-webkit-scrollbar {
+  display: none;
+}
