@@ -29,6 +29,6 @@ Los nombres, precios y disponibilidad de productos cambian con frecuencia por ro
 - Pago: transferencia bancaria (Banco Continental, Tu Financiera) o alias por teléfono/cédula; el comprobante se sube durante el checkout.
 - Idioma del sitio: español (es-PY).
 
-## Optional
+## Restricciones de crawling
 
 - [robots.txt](https://genexstore.com.py/robots.txt): las páginas de checkout y confirmación de pedido están bloqueadas para crawlers y no deben citarse como contenido navegable.
