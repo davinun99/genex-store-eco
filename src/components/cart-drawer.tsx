@@ -36,11 +36,32 @@ export function CartDrawer() {
             <ul className="divide-y divide-border">
               {items.map((item) => (
                 <li key={item.id} className="flex gap-3 py-4">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-[var(--color-surface-strong)] font-display text-lg font-bold text-muted-foreground">
-                    {item.name.charAt(0).toUpperCase()}
-                  </div>
+                  <Link
+                    to="/producto/$id"
+                    params={{ id: item.id }}
+                    onClick={() => setOpen(false)}
+                    className="flex size-20 shrink-0 items-center justify-center overflow-hidden bg-[#f4f4f2] font-display text-lg font-bold text-muted-foreground"
+                    aria-label={`Ver ${item.name}`}
+                  >
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt=""
+                        className="h-full w-full object-contain p-1.5"
+                      />
+                    ) : (
+                      item.name.charAt(0).toUpperCase()
+                    )}
+                  </Link>
                   <div className="flex-1">
-                    <div className="text-sm font-semibold leading-snug">{item.name}</div>
+                    <Link
+                      to="/producto/$id"
+                      params={{ id: item.id }}
+                      onClick={() => setOpen(false)}
+                      className="line-clamp-2 text-sm font-semibold leading-snug hover:underline"
+                    >
+                      {item.name}
+                    </Link>
                     <div className="mt-2 flex items-center justify-between">
                       <div className="inline-flex items-center rounded-full border border-border">
                         <button
@@ -50,7 +71,9 @@ export function CartDrawer() {
                         >
                           <Minus className="size-3" />
                         </button>
-                        <span className="min-w-[2rem] text-center text-sm font-medium">{item.quantity}</span>
+                        <span className="min-w-[2rem] text-center text-sm font-medium">
+                          {item.quantity}
+                        </span>
                         <button
                           onClick={() => setQuantity(item.id, item.quantity + 1)}
                           className="p-1.5 hover:bg-[var(--color-surface-strong)] disabled:opacity-40"
@@ -60,7 +83,9 @@ export function CartDrawer() {
                           <Plus className="size-3" />
                         </button>
                       </div>
-                      <div className="text-sm font-semibold">{formatGs(item.price * item.quantity)}</div>
+                      <div className="text-sm font-semibold">
+                        {formatGs(item.price * item.quantity)}
+                      </div>
                     </div>
                   </div>
                   <button

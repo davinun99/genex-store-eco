@@ -64,6 +64,7 @@ export function ProductCard({
                 price: Number(product.sale_price),
                 stock: product.current_stock,
                 sku: product.sku,
+                imageUrl: product.image_url,
               });
               setOpen(true);
             }}
