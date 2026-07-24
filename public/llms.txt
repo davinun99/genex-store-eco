@@ -1,0 +1,34 @@
+# Genex Store
+
+> Tienda online de tecnología y accesorios en Paraguay, con catálogo en stock real, pago por transferencia bancaria y coordinación de entrega por WhatsApp.
+
+Genex Store vende accesorios para celulares, protectores de vidrio, fundas (case), electrónica, herramientas y perfumes. El catálogo se sirve dinámicamente desde un backend de inventario y refleja el stock disponible en tiempo real: los productos sin stock no se muestran en el sitio. Los pedidos se pagan por transferencia bancaria o alias y se coordinan por WhatsApp; no hay checkout con tarjeta ni pago online automatizado.
+
+## Tienda
+
+- [Catálogo](https://genexstore.com.py): listado de productos en stock, filtrable por categoría (`?cat=<id>`) y búsqueda (`?q=<texto>`), paginado de a 12 (`?page=<n>`).
+- [Ficha de producto](https://genexstore.com.py/producto/{id}): detalle, precio, stock y alta al carrito de un producto puntual (URL dinámica, un id por producto).
+
+## Categorías activas
+
+- Accesorios
+- Case
+- Electrónica
+- Herramientas
+- Otros (incluye Consignación)
+- Perfumes
+- Vidrios
+
+Los nombres, precios y disponibilidad de productos cambian con frecuencia por rotación de stock. Cualquier producto o precio citado fuera de esta lista de categorías debe verificarse contra el catálogo en vivo, no asumirse vigente.
+
+## Contacto y políticas
+
+- WhatsApp: +595 984 849 454 (https://wa.me/595984849454)
+- Email: nunezbenitezpablo@gmail.com
+- Retiro en tienda: Sobre Dr. Sosa, casi Avenida Madame Lynch, Paraguay — [ver en Google Maps](https://maps.app.goo.gl/Q8PyZxvsWVJMCSgR8)
+- Pago: transferencia bancaria (Banco Continental, Tu Financiera) o alias por teléfono/cédula; el comprobante se sube durante el checkout.
+- Idioma del sitio: español (es-PY).
+
+## Optional
+
+- [robots.txt](https://genexstore.com.py/robots.txt): las páginas de checkout y confirmación de pedido están bloqueadas para crawlers y no deben citarse como contenido navegable.
