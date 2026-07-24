@@ -92,8 +92,6 @@ function Home() {
         )
         .eq("is_active", true)
         .gt("current_stock", 0)
-        .not("image_url", "is", null)
-        .neq("image_url", "")
         .order("name", { ascending: true })
         .range(from, to);
       if (cat !== "all") {
@@ -187,7 +185,9 @@ function Home() {
         isLoading={categoriesQuery.isLoading}
         activeCategory={cat}
         onSelect={selectShowcaseCategory}
-        products={productsQuery.data?.items ?? []}
+        products={(productsQuery.data?.items ?? []).filter((product) =>
+          Boolean(product.image_url?.trim()),
+        )}
         productsLoading={productsQuery.isLoading}
         categoryName={categoryName}
       />
@@ -208,7 +208,7 @@ function Home() {
             <p className="mt-1 text-sm text-muted-foreground">
               {productsQuery.isLoading
                 ? "Cargando productos..."
-                : `${total} producto(s) con stock y foto · página ${page} de ${totalPages}`}
+                : `${total} producto(s) con stock · página ${page} de ${totalPages}`}
             </p>
           </div>
           <a
@@ -352,12 +352,12 @@ function CategoryShowcase({
   };
 
   return (
-    <section
-      id="categorias"
-      className="scroll-mt-20 overflow-hidden border-b border-black bg-white py-12 sm:py-16"
-    >
+    <section className="overflow-hidden border-b border-black bg-white py-12 sm:py-16">
       <div className="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
-        <div className="order-4 mb-7 mt-12 flex items-end justify-between gap-4 border-t border-black/10 pt-10">
+        <div
+          id="categorias"
+          className="order-4 mb-7 mt-12 flex scroll-mt-20 items-end justify-between gap-4 border-t border-black/10 pt-10"
+        >
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
               Explorá por categoría
