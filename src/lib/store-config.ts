@@ -3,6 +3,8 @@ export const STORE = {
   tagline: "Tecnología y accesorios",
   whatsapp: "595984849454",
   email: "nunezbenitezpablo@gmail.com",
+  address: "Sobre Dr. Sosa, casi Avenida Madame Lynch",
+  mapsUrl: "https://maps.app.goo.gl/Q8PyZxvsWVJMCSgR8",
 };
 
 export interface BankAccount {

@@ -11,7 +11,14 @@ import {
 import { Header } from "@/components/header";
 import { ProductCard } from "@/components/product-card";
 import { STORE } from "@/lib/store-config";
-import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
+import {
+  ArrowRight,
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  MapPin,
+} from "lucide-react";
 
 const PAGE_SIZE = 12;
 
@@ -114,9 +121,27 @@ function Home() {
       search: (prev: SearchParams) => ({ ...prev, cat: newCat, page: 1 }),
       resetScroll: false,
     });
-  const setPage = (newPage: number) =>
-    navigate({ search: (prev: SearchParams) => ({ ...prev, page: newPage }) });
-  const selectShowcaseCategory = (newCat: string) => setCat(newCat);
+  const setPage = (newPage: number) => {
+    navigate({
+      search: (prev: SearchParams) => ({ ...prev, page: newPage }),
+      resetScroll: false,
+    });
+    window.setTimeout(() => {
+      document.getElementById("catalogo")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  };
+  const selectShowcaseCategory = (newCat: string) => {
+    setCat(newCat);
+    window.setTimeout(() => {
+      document.getElementById("catalogo")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,25 +193,35 @@ function Home() {
       />
 
       {/* Catalog */}
-      <section id="catalogo" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-3 pb-6">
+      <section
+        id="catalogo"
+        className="mx-auto max-w-7xl scroll-mt-20 px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-5 border-b border-black/10 pb-6">
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-              Productos
+              {cat === "all" ? "Todos los productos" : "Categoría seleccionada"}
             </p>
             <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.045em] sm:text-4xl">
               {cat === "all" ? "Catálogo" : (categoryName(cat) ?? "Catálogo")}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               {productsQuery.isLoading
                 ? "Cargando productos..."
-                : `${total} producto(s) · pagina ${page} de ${totalPages}`}
+                : `${total} producto(s) con stock y foto · página ${page} de ${totalPages}`}
             </p>
           </div>
+          <a
+            href="#categorias"
+            className="inline-flex items-center gap-2 border border-black bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition hover:bg-black hover:text-white"
+          >
+            {cat === "all" ? "Explorar categorías" : "Cambiar categoría"}
+            <ArrowRight className="size-3.5" />
+          </a>
         </div>
 
         {/* Mobile search */}
-        <div className="mb-4 md:hidden">
+        <div className="mb-4 mt-6 md:hidden">
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
@@ -195,45 +230,15 @@ function Home() {
           />
         </div>
 
-        {/* Category tabs */}
-        <div className="mb-6 -mx-1 flex flex-nowrap gap-2 overflow-x-auto px-1 pb-2 sm:flex-wrap sm:overflow-visible">
-          <button
-            onClick={() => setCat("all")}
-            className={`shrink-0 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition ${
-              cat === "all"
-                ? "border-transparent bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
-                : "border-border bg-[var(--color-surface)] hover:bg-[var(--color-surface-strong)]"
-            }`}
-          >
-            Todos
-          </button>
-          {categories
-            .filter((c) => c.id !== "35995509-7b9d-48e8-a00d-6d63bbd02fd4")
-            .map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setCat(c.id === OTROS_PRIMARY_ID ? OTROS_PRIMARY_ID : c.id)}
-                className={`shrink-0 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition ${
-                  (OTROS_IDS.includes(cat) && c.id === OTROS_PRIMARY_ID) ||
-                  (cat === c.id && !OTROS_IDS.includes(cat))
-                    ? "border-transparent bg-(--color-primary) text-(--color-primary-foreground)"
-                    : "border-border bg-(--color-surface) hover:bg-(--color-surface-strong)"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-        </div>
-
         {error && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+          <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
             No pudimos cargar los productos. Verifica que la base de Inventario Amigo permita
             lectura publica para visitantes.
           </div>
         )}
 
         {productsQuery.isLoading ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: PAGE_SIZE }).map((_, i) => (
               <div
                 key={i}
@@ -242,13 +247,13 @@ function Home() {
             ))}
           </div>
         ) : (productsQuery.data?.items.length ?? 0) === 0 ? (
-          <div className="rounded-2xl border border-border bg-[var(--color-surface)] p-10 text-center text-sm text-muted-foreground">
+          <div className="mt-6 rounded-2xl border border-border bg-[var(--color-surface)] p-10 text-center text-sm text-muted-foreground">
             No encontramos productos para tu busqueda.
           </div>
         ) : (
           <>
             <div
-              className={`grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${productsQuery.isFetching ? "opacity-60" : ""}`}
+              className={`mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${productsQuery.isFetching ? "opacity-60" : ""}`}
             >
               {productsQuery.data!.items.map((p) => (
                 <ProductCard key={p.id} product={p} categoryName={categoryName(p.category_id)} />
@@ -262,18 +267,48 @@ function Home() {
         )}
       </section>
 
-      <footer className="border-t border-white/10 bg-black py-12 text-white">
-        <div className="mx-auto max-w-7xl px-4 text-center text-xs text-white/50 sm:px-6 lg:px-8">
-          <div className="font-display text-2xl font-bold tracking-[-0.08em] text-white">
-            GENEX.
+      <footer className="border-t border-white/10 bg-black py-14 text-white sm:py-16">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-2 md:items-end lg:px-8">
+          <div className="text-center md:text-left">
+            <div className="font-display text-3xl font-bold tracking-[-0.06em] text-white">
+              GENEX STORE
+            </div>
+            <p className="mt-2 text-sm text-white/55 sm:text-base">{STORE.tagline}</p>
+            <a
+              href={`https://wa.me/${STORE.whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-5 inline-flex items-center gap-2 text-sm text-white/75 transition hover:text-white sm:text-base"
+            >
+              <MessageCircle className="size-4" />
+              <span>WhatsApp</span>
+              <span className="font-medium text-white">0984 849 454</span>
+            </a>
+            <div className="mt-5">
+              <Link
+                to="/checkout"
+                className="text-sm text-white/60 underline decoration-white/25 underline-offset-4 transition hover:text-white sm:text-base"
+              >
+                Finalizar compra
+              </Link>
+            </div>
           </div>
-          <div className="mt-1">
-            {STORE.tagline} · WhatsApp +{STORE.whatsapp}
-          </div>
-          <div className="mt-3">
-            <Link to="/checkout" className="underline-offset-2 hover:underline">
-              Finalizar compra
-            </Link>
+
+          <div className="text-center md:text-right">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-white/45">
+              Ubicación de la tienda
+            </p>
+            <a
+              href={STORE.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex max-w-md items-center justify-center gap-3 text-base font-medium leading-relaxed text-white transition hover:text-white/65 sm:text-lg md:justify-end"
+            >
+              <MapPin className="size-6 shrink-0" />
+              <span className="underline decoration-white/30 underline-offset-4">
+                {STORE.address}
+              </span>
+            </a>
           </div>
         </div>
       </footer>
@@ -317,7 +352,10 @@ function CategoryShowcase({
   };
 
   return (
-    <section className="overflow-hidden border-b border-black bg-white py-12 sm:py-16">
+    <section
+      id="categorias"
+      className="scroll-mt-20 overflow-hidden border-b border-black bg-white py-12 sm:py-16"
+    >
       <div className="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
         <div className="order-4 mb-7 mt-12 flex items-end justify-between gap-4 border-t border-black/10 pt-10">
           <div>
