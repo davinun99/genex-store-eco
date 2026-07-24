@@ -141,3 +141,77 @@
 .category-track::-webkit-scrollbar {
   display: none;
 }
+
+.genex-loader {
+  position: relative;
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #000;
+  background: #fff;
+}
+
+.genex-loader span {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  animation: genex-loader-ink 1.2s ease-in-out infinite;
+}
+
+.genex-loader::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: #000;
+  transform: translateY(105%);
+  animation: genex-loader-fill 1.2s ease-in-out infinite;
+}
+
+.genex-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: genex-spin 0.7s linear infinite;
+}
+
+@keyframes genex-loader-fill {
+  0%,
+  100% {
+    transform: translateY(105%);
+  }
+  50% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes genex-loader-ink {
+  0%,
+  100% {
+    color: #000;
+  }
+  50% {
+    color: #fff;
+  }
+}
+
+@keyframes genex-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .genex-loader::after,
+  .genex-loader span,
+  .genex-spinner {
+    animation-duration: 2.5s;
+  }
+}

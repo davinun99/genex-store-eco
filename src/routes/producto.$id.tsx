@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { inventario, type InventarioProduct } from "@/integrations/inventario/client";
 import { Header } from "@/components/header";
+import { StoreError, StoreLoader } from "@/components/store-feedback";
+import { friendlyErrorMessage } from "@/lib/store-errors";
 import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
 import { ArrowLeft, Minus, Plus, ShoppingBag, PackageCheck, PackageX } from "lucide-react";
@@ -21,6 +23,7 @@ function ProductPage() {
     data: product,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
@@ -48,18 +51,18 @@ function ProductPage() {
         </button>
 
         {isLoading ? (
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="aspect-square animate-pulse bg-[var(--color-surface-strong)]" />
-            <div className="space-y-4">
-              <div className="h-8 w-2/3 animate-pulse bg-[var(--color-surface-strong)]" />
-              <div className="h-6 w-1/3 animate-pulse bg-[var(--color-surface-strong)]" />
-              <div className="h-20 animate-pulse bg-[var(--color-surface-strong)]" />
-            </div>
-          </div>
+          <StoreLoader message="Preparando el producto" />
         ) : error || !product ? (
-          <div className="border border-border bg-[var(--color-surface)] p-10 text-center text-sm text-muted-foreground">
-            Producto no encontrado.
-          </div>
+          <StoreError
+            title={error ? "No pudimos abrir el producto" : "Este producto ya no está disponible"}
+            message={
+              error
+                ? friendlyErrorMessage(error)
+                : "Puede haberse agotado o dejado de estar disponible. Volvé al catálogo para ver otras opciones."
+            }
+            onRetry={error ? () => void refetch() : () => navigate({ to: "/" })}
+            actionLabel={error ? "Intentar de nuevo" : "Volver al catálogo"}
+          />
         ) : (
           <div className="grid gap-7 lg:h-[calc(100%-36px)] lg:grid-cols-[0.9fr_1.1fr] lg:gap-10">
             <div className="flex h-[min(42dvh,360px)] items-center justify-center overflow-hidden bg-white lg:aspect-square lg:h-auto lg:max-h-[500px] lg:self-center">

@@ -14,20 +14,24 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/contexts/cart-context";
 import { CartDrawer } from "@/components/cart-drawer";
 import { STORE } from "@/lib/store-config";
+import { StoreError, StoreLoader } from "@/components/store-feedback";
+import { friendlyErrorMessage } from "@/lib/store-errors";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="font-display text-7xl font-bold">404</h1>
-        <h2 className="mt-4 font-display text-xl font-semibold">Pagina no encontrada</h2>
+      <div className="max-w-md border border-black/15 p-8 text-center sm:p-10">
+        <p className="font-display text-7xl font-bold tracking-[-0.08em]">404</p>
+        <h1 className="mt-4 font-display text-2xl font-bold uppercase tracking-[-0.04em]">
+          Esta página no existe
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          La pagina que buscas no existe o fue movida.
+          El enlace puede estar vencido, pero la tienda sigue disponible.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:opacity-90"
+            className="inline-flex items-center justify-center border border-black bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-black"
           >
             Volver al inicio
           </Link>
@@ -46,26 +50,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="font-display text-xl font-semibold">Hubo un problema</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Algo no funciono como esperabamos. Podes intentar de nuevo o volver al inicio.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:opacity-90"
-          >
-            Reintentar
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold transition hover:bg-[var(--color-surface-strong)]"
-          >
-            Inicio
+      <div className="w-full max-w-lg">
+        <StoreError
+          title="GENEX tuvo un inconveniente"
+          message={friendlyErrorMessage(error)}
+          onRetry={() => {
+            router.invalidate();
+            reset();
+          }}
+        />
+        <div className="mt-3 text-center">
+          <a href="/" className="text-sm text-muted-foreground underline underline-offset-4">
+            Volver al inicio
           </a>
         </div>
       </div>
@@ -119,6 +115,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
+  pendingComponent: () => (
+    <div className="flex min-h-screen items-center justify-center">
+      <StoreLoader message="Abriendo GENEX Store" />
+    </div>
+  ),
 });
 
 function RootShell({ children }: { children: ReactNode }) {

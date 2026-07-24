@@ -10,6 +10,8 @@ import {
 } from "@/integrations/inventario/client";
 import { Header } from "@/components/header";
 import { ProductCard } from "@/components/product-card";
+import { StoreError, StoreLoader } from "@/components/store-feedback";
+import { friendlyErrorMessage } from "@/lib/store-errors";
 import { STORE } from "@/lib/store-config";
 import {
   ArrowRight,
@@ -231,21 +233,20 @@ function Home() {
         </div>
 
         {error && (
-          <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
-            No pudimos cargar los productos. Verifica que la base de Inventario Amigo permita
-            lectura publica para visitantes.
+          <div className="mt-6">
+            <StoreError
+              title="El catálogo no está disponible"
+              message={friendlyErrorMessage(error)}
+              onRetry={() => {
+                void categoriesQuery.refetch();
+                void productsQuery.refetch();
+              }}
+            />
           </div>
         )}
 
         {productsQuery.isLoading ? (
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-[3/4] animate-pulse rounded-2xl bg-[var(--color-surface-strong)]"
-              />
-            ))}
-          </div>
+          <StoreLoader message="Cargando productos" />
         ) : (productsQuery.data?.items.length ?? 0) === 0 ? (
           <div className="mt-6 rounded-2xl border border-border bg-[var(--color-surface)] p-10 text-center text-sm text-muted-foreground">
             No encontramos productos para tu busqueda.
@@ -392,12 +393,9 @@ function CategoryShowcase({
           aria-label="Categorías de productos"
         >
           {isLoading ? (
-            Array.from({ length: 5 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-44 w-[78vw] max-w-[300px] shrink-0 animate-pulse snap-start bg-[var(--color-surface-strong)]"
-              />
-            ))
+            <div className="w-full">
+              <StoreLoader message="Cargando categorías" compact />
+            </div>
           ) : (
             <>
               <button
@@ -494,12 +492,9 @@ function CategoryShowcase({
           aria-label="Productos destacados"
         >
           {productsLoading ? (
-            Array.from({ length: 5 }).map((_, index) => (
-              <div
-                key={index}
-                className="aspect-[3/4] w-[72vw] max-w-[270px] shrink-0 animate-pulse snap-start bg-[var(--color-surface-strong)]"
-              />
-            ))
+            <div className="w-full">
+              <StoreLoader message="Buscando destacados" compact />
+            </div>
           ) : products.length > 0 ? (
             products.map((product) => (
               <div
