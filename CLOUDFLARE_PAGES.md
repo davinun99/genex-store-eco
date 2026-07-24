@@ -5,11 +5,13 @@ This app builds for Cloudflare Pages through Nitro's `cloudflare-pages` preset.
 ## Cloudflare Pages Settings
 
 - Project name: `genex-store-eco`
-- Build command: `bun run build`
+- Build command: `bun install --frozen-lockfile && bun run build`
 - Build output directory: `dist`
 - Runtime: Pages Functions, generated at `dist/_worker.js`
 
-`wrangler.toml` sets `pages_build_output_dir = "dist"` so Cloudflare CI / `wrangler pages deploy` knows which folder to upload. Without it, deploy fails with “Must specify a directory of assets to deploy.”
+Because this repo uses Bun’s text lockfile (`bun.lock`), classic Pages may not detect Bun and fall back to npm. Set env var `SKIP_DEPENDENCY_INSTALL=true` and use the build command above so install + build both run with Bun.
+
+`wrangler.toml` sets `pages_build_output_dir = "dist"`. Local deploys can still use `bun run deploy` (Wrangler).
 
 ## Local Commands
 
