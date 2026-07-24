@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   inventario,
   type InventarioCategory,
@@ -11,7 +11,14 @@ import {
 import { Header } from "@/components/header";
 import { ProductCard } from "@/components/product-card";
 import { STORE } from "@/lib/store-config";
-import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowRight,
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  MapPin,
+} from "lucide-react";
 
 const PAGE_SIZE = 12;
 
@@ -85,6 +92,8 @@ function Home() {
         )
         .eq("is_active", true)
         .gt("current_stock", 0)
+        .not("image_url", "is", null)
+        .neq("image_url", "")
         .order("name", { ascending: true })
         .range(from, to);
       if (cat !== "all") {
@@ -112,8 +121,27 @@ function Home() {
       search: (prev: SearchParams) => ({ ...prev, cat: newCat, page: 1 }),
       resetScroll: false,
     });
-  const setPage = (newPage: number) =>
-    navigate({ search: (prev: SearchParams) => ({ ...prev, page: newPage }) });
+  const setPage = (newPage: number) => {
+    navigate({
+      search: (prev: SearchParams) => ({ ...prev, page: newPage }),
+      resetScroll: false,
+    });
+    window.setTimeout(() => {
+      document.getElementById("catalogo")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  };
+  const selectShowcaseCategory = (newCat: string) => {
+    setCat(newCat);
+    window.setTimeout(() => {
+      document.getElementById("catalogo")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -154,26 +182,46 @@ function Home() {
         </div>
       </section>
 
+      <CategoryShowcase
+        categories={categories}
+        isLoading={categoriesQuery.isLoading}
+        activeCategory={cat}
+        onSelect={selectShowcaseCategory}
+        products={productsQuery.data?.items ?? []}
+        productsLoading={productsQuery.isLoading}
+        categoryName={categoryName}
+      />
+
       {/* Catalog */}
-      <section id="catalogo" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-3 pb-6">
+      <section
+        id="catalogo"
+        className="mx-auto max-w-7xl scroll-mt-20 px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-5 border-b border-black/10 pb-6">
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-              Productos
+              {cat === "all" ? "Todos los productos" : "Categoría seleccionada"}
             </p>
             <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.045em] sm:text-4xl">
               {cat === "all" ? "Catálogo" : (categoryName(cat) ?? "Catálogo")}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               {productsQuery.isLoading
                 ? "Cargando productos..."
-                : `${total} producto(s) · pagina ${page} de ${totalPages}`}
+                : `${total} producto(s) con stock y foto · página ${page} de ${totalPages}`}
             </p>
           </div>
+          <a
+            href="#categorias"
+            className="inline-flex items-center gap-2 border border-black bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition hover:bg-black hover:text-white"
+          >
+            {cat === "all" ? "Explorar categorías" : "Cambiar categoría"}
+            <ArrowRight className="size-3.5" />
+          </a>
         </div>
 
         {/* Mobile search */}
-        <div className="mb-4 md:hidden">
+        <div className="mb-4 mt-6 md:hidden">
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
@@ -182,45 +230,15 @@ function Home() {
           />
         </div>
 
-        {/* Category tabs */}
-        <div className="mb-6 -mx-1 flex flex-nowrap gap-2 overflow-x-auto px-1 pb-2 sm:flex-wrap sm:overflow-visible">
-          <button
-            onClick={() => setCat("all")}
-            className={`shrink-0 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition ${
-              cat === "all"
-                ? "border-transparent bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
-                : "border-border bg-[var(--color-surface)] hover:bg-[var(--color-surface-strong)]"
-            }`}
-          >
-            Todos
-          </button>
-          {categories
-            .filter((c) => c.id !== "35995509-7b9d-48e8-a00d-6d63bbd02fd4")
-            .map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setCat(c.id === OTROS_PRIMARY_ID ? OTROS_PRIMARY_ID : c.id)}
-                className={`shrink-0 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wider transition ${
-                  (OTROS_IDS.includes(cat) && c.id === OTROS_PRIMARY_ID) ||
-                  (cat === c.id && !OTROS_IDS.includes(cat))
-                    ? "border-transparent bg-(--color-primary) text-(--color-primary-foreground)"
-                    : "border-border bg-(--color-surface) hover:bg-(--color-surface-strong)"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-        </div>
-
         {error && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+          <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
             No pudimos cargar los productos. Verifica que la base de Inventario Amigo permita
             lectura publica para visitantes.
           </div>
         )}
 
         {productsQuery.isLoading ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: PAGE_SIZE }).map((_, i) => (
               <div
                 key={i}
@@ -229,13 +247,13 @@ function Home() {
             ))}
           </div>
         ) : (productsQuery.data?.items.length ?? 0) === 0 ? (
-          <div className="rounded-2xl border border-border bg-[var(--color-surface)] p-10 text-center text-sm text-muted-foreground">
+          <div className="mt-6 rounded-2xl border border-border bg-[var(--color-surface)] p-10 text-center text-sm text-muted-foreground">
             No encontramos productos para tu busqueda.
           </div>
         ) : (
           <>
             <div
-              className={`grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${productsQuery.isFetching ? "opacity-60" : ""}`}
+              className={`mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${productsQuery.isFetching ? "opacity-60" : ""}`}
             >
               {productsQuery.data!.items.map((p) => (
                 <ProductCard key={p.id} product={p} categoryName={categoryName(p.category_id)} />
@@ -249,22 +267,265 @@ function Home() {
         )}
       </section>
 
-      <footer className="border-t border-white/10 bg-black py-12 text-white">
-        <div className="mx-auto max-w-7xl px-4 text-center text-xs text-white/50 sm:px-6 lg:px-8">
-          <div className="font-display text-2xl font-bold tracking-[-0.08em] text-white">
-            GENEX.
+      <footer className="border-t border-white/10 bg-black py-14 text-white sm:py-16">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-2 md:items-end lg:px-8">
+          <div className="text-center md:text-left">
+            <div className="font-display text-3xl font-bold tracking-[-0.06em] text-white">
+              GENEX STORE
+            </div>
+            <p className="mt-2 text-sm text-white/55 sm:text-base">{STORE.tagline}</p>
+            <a
+              href={`https://wa.me/${STORE.whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-5 inline-flex items-center gap-2 text-sm text-white/75 transition hover:text-white sm:text-base"
+            >
+              <MessageCircle className="size-4" />
+              <span>WhatsApp</span>
+              <span className="font-medium text-white">0984 849 454</span>
+            </a>
+            <div className="mt-5">
+              <Link
+                to="/checkout"
+                className="text-sm text-white/60 underline decoration-white/25 underline-offset-4 transition hover:text-white sm:text-base"
+              >
+                Finalizar compra
+              </Link>
+            </div>
           </div>
-          <div className="mt-1">
-            {STORE.tagline} · WhatsApp +{STORE.whatsapp}
-          </div>
-          <div className="mt-3">
-            <Link to="/checkout" className="underline-offset-2 hover:underline">
-              Finalizar compra
-            </Link>
+
+          <div className="text-center md:text-right">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-white/45">
+              Ubicación de la tienda
+            </p>
+            <a
+              href={STORE.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex max-w-md items-center justify-center gap-3 text-base font-medium leading-relaxed text-white transition hover:text-white/65 sm:text-lg md:justify-end"
+            >
+              <MapPin className="size-6 shrink-0" />
+              <span className="underline decoration-white/30 underline-offset-4">
+                {STORE.address}
+              </span>
+            </a>
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function CategoryShowcase({
+  categories,
+  isLoading,
+  activeCategory,
+  onSelect,
+  products,
+  productsLoading,
+  categoryName,
+}: {
+  categories: InventarioCategory[];
+  isLoading: boolean;
+  activeCategory: string;
+  onSelect: (category: string) => void;
+  products: InventarioProduct[];
+  productsLoading: boolean;
+  categoryName: (category: string) => string | undefined;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const productTrackRef = useRef<HTMLDivElement>(null);
+  const visibleCategories = categories.filter(
+    (category) => category.id !== "35995509-7b9d-48e8-a00d-6d63bbd02fd4",
+  );
+  const scroll = (direction: -1 | 1) => {
+    trackRef.current?.scrollBy({
+      left: direction * Math.min(trackRef.current.clientWidth * 0.8, 720),
+      behavior: "smooth",
+    });
+  };
+  const scrollProducts = (direction: -1 | 1) => {
+    productTrackRef.current?.scrollBy({
+      left: direction * Math.min(productTrackRef.current.clientWidth * 0.8, 720),
+      behavior: "smooth",
+    });
+  };
+
+  return (
+    <section
+      id="categorias"
+      className="scroll-mt-20 overflow-hidden border-b border-black bg-white py-12 sm:py-16"
+    >
+      <div className="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
+        <div className="order-4 mb-7 mt-12 flex items-end justify-between gap-4 border-t border-black/10 pt-10">
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              Explorá por categoría
+            </p>
+            <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.045em] sm:text-4xl">
+              Encontrá lo tuyo
+            </h2>
+          </div>
+          <div className="hidden gap-2 sm:flex">
+            <button
+              type="button"
+              onClick={() => scroll(-1)}
+              className="grid size-11 place-items-center border border-black bg-white transition hover:bg-black hover:text-white"
+              aria-label="Ver categorías anteriores"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scroll(1)}
+              className="grid size-11 place-items-center border border-black bg-black text-white transition hover:bg-white hover:text-black"
+              aria-label="Ver categorías siguientes"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref={trackRef}
+          className="category-track order-5 -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          aria-label="Categorías de productos"
+        >
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-44 w-[78vw] max-w-[300px] shrink-0 animate-pulse snap-start bg-[var(--color-surface-strong)]"
+              />
+            ))
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => onSelect("all")}
+                className={`group relative flex h-44 w-[78vw] max-w-[300px] shrink-0 snap-start flex-col justify-between overflow-hidden border p-5 text-left transition sm:h-48 ${
+                  activeCategory === "all"
+                    ? "border-black bg-black text-white"
+                    : "border-black bg-white hover:bg-black hover:text-white"
+                }`}
+              >
+                <LayoutGrid className="size-6" strokeWidth={1.5} />
+                <div>
+                  <span className="font-display text-2xl font-bold uppercase tracking-[-0.04em]">
+                    Todos
+                  </span>
+                  <span className="mt-1 flex items-center gap-2 text-xs opacity-60">
+                    Ver catálogo completo <ArrowRight className="size-3.5" />
+                  </span>
+                </div>
+              </button>
+
+              {visibleCategories.map((category, index) => {
+                const isActive =
+                  (OTROS_IDS.includes(activeCategory) && category.id === OTROS_PRIMARY_ID) ||
+                  activeCategory === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => onSelect(category.id)}
+                    className={`group relative flex h-44 w-[78vw] max-w-[300px] shrink-0 snap-start flex-col justify-between overflow-hidden border p-5 text-left transition sm:h-48 ${
+                      isActive
+                        ? "border-black bg-black text-white"
+                        : "border-black bg-white hover:bg-black hover:text-white"
+                    }`}
+                  >
+                    <span className="font-display text-5xl font-bold tracking-[-0.08em] opacity-15">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <span className="line-clamp-2 font-display text-2xl font-bold uppercase leading-none tracking-[-0.04em]">
+                        {category.name}
+                      </span>
+                      <span className="mt-2 flex items-center gap-2 text-xs opacity-60">
+                        Ver productos{" "}
+                        <ArrowRight className="size-3.5 transition group-hover:translate-x-1" />
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+        <p className="order-6 mt-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:hidden">
+          Deslizá para explorar
+        </p>
+
+        <div className="order-1 mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              Productos
+            </p>
+            <h3 className="font-display text-2xl font-bold uppercase tracking-[-0.04em] sm:text-3xl">
+              {activeCategory === "all"
+                ? "Destacados"
+                : (categoryName(activeCategory) ?? "Destacados")}
+            </h3>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => scrollProducts(-1)}
+              className="grid size-10 place-items-center border border-black bg-white transition hover:bg-black hover:text-white"
+              aria-label="Ver productos anteriores"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollProducts(1)}
+              className="grid size-10 place-items-center border border-black bg-black text-white transition hover:bg-white hover:text-black"
+              aria-label="Ver productos siguientes"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref={productTrackRef}
+          className="category-track order-2 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          aria-label="Productos destacados"
+        >
+          {productsLoading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="aspect-[3/4] w-[72vw] max-w-[270px] shrink-0 animate-pulse snap-start bg-[var(--color-surface-strong)]"
+              />
+            ))
+          ) : products.length > 0 ? (
+            products.map((product) => (
+              <div
+                key={product.id}
+                className="w-[72vw] max-w-[270px] shrink-0 snap-start sm:w-[260px]"
+              >
+                <ProductCard product={product} categoryName={categoryName(product.category_id)} />
+              </div>
+            ))
+          ) : (
+            <div className="w-full border border-black/10 p-8 text-center text-sm text-muted-foreground">
+              No hay productos disponibles en esta categoría.
+            </div>
+          )}
+        </div>
+
+        <div className="order-3 mt-5 flex justify-end">
+          <a
+            href="#catalogo"
+            className="inline-flex items-center gap-2 border-b border-black pb-1 text-xs font-semibold uppercase tracking-[0.14em]"
+          >
+            Ver catálogo completo <ArrowRight className="size-4" />
+          </a>
+        </div>
+      </div>
+    </section>
   );
 }
 
