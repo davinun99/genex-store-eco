@@ -1,4 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { inventario } from "@/integrations/inventario/client";
 
 export interface CartItem {
   id: string;
@@ -7,6 +16,7 @@ export interface CartItem {
   quantity: number;
   stock: number;
   sku: string;
+  imageUrl?: string | null;
 }
 
 interface CartContextValue {
@@ -28,13 +38,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const imagesUpdated = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setItems(JSON.parse(raw));
-    } catch {}
+    } catch {
+      // El carrito puede seguir funcionando aunque el almacenamiento esté bloqueado.
+    }
     setHydrated(true);
   }, []);
 
@@ -42,8 +55,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {}
+    } catch {
+      // Algunos navegadores bloquean localStorage en modo privado.
+    }
   }, [items, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated || imagesUpdated.current) return;
+    imagesUpdated.current = true;
+    const missingIds = items.filter((item) => !item.imageUrl).map((item) => item.id);
+    if (missingIds.length === 0) return;
+
+    void inventario
+      .from("products")
+      .select("id,image_url")
+      .in("id", missingIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const images = new Map(data.map((product) => [product.id, product.image_url]));
+        setItems((current) =>
+          current.map((item) =>
+            images.has(item.id) ? { ...item, imageUrl: images.get(item.id) } : item,
+          ),
+        );
+      });
+  }, [hydrated, items]);
 
   const value = useMemo<CartContextValue>(() => {
     const totalItems = items.reduce((acc, i) => acc + i.quantity, 0);
@@ -60,7 +96,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const max = incoming.stock;
           if (existing) {
             const nextQty = Math.min(existing.quantity + qty, max);
-            return prev.map((p) => (p.id === incoming.id ? { ...p, quantity: nextQty } : p));
+            return prev.map((p) =>
+              p.id === incoming.id ? { ...p, ...incoming, quantity: nextQty } : p,
+            );
           }
           return [...prev, { ...incoming, quantity: Math.min(qty, max) }];
         });
@@ -68,7 +106,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem: (id) => setItems((prev) => prev.filter((p) => p.id !== id)),
       setQuantity: (id, qty) =>
         setItems((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, quantity: Math.max(1, Math.min(qty, p.stock)) } : p)),
+          prev.map((p) =>
+            p.id === id ? { ...p, quantity: Math.max(1, Math.min(qty, p.stock)) } : p,
+          ),
         ),
       clear: () => setItems([]),
     };
@@ -77,6 +117,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCart() {
   const ctx = useContext(CartContext);
   if (!ctx) throw new Error("useCart fuera del CartProvider");
