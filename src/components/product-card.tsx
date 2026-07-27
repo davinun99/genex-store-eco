@@ -4,13 +4,7 @@ import type { InventarioProduct } from "@/integrations/inventario/client";
 import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
 
-export function ProductCard({
-  product,
-  categoryName,
-}: {
-  product: InventarioProduct;
-  categoryName?: string;
-}) {
+export function ProductCard({ product }: { product: InventarioProduct }) {
   const { addItem, setOpen } = useCart();
   const outOfStock = product.current_stock <= 0;
 
@@ -30,11 +24,6 @@ export function ProductCard({
         ) : (
           <span className="font-display text-6xl font-bold text-black/10 transition-transform duration-300 group-hover:scale-110">
             {product.name.charAt(0).toUpperCase()}
-          </span>
-        )}
-        {categoryName && (
-          <span className="absolute left-3 top-3 bg-white px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-black/60">
-            {categoryName}
           </span>
         )}
         {outOfStock && (

@@ -31,6 +31,7 @@ function Checkout() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [whatsAppFallbackUrl, setWhatsAppFallbackUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -43,6 +44,7 @@ function Checkout() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErrorMsg(null);
+    setWhatsAppFallbackUrl(null);
     if (items.length === 0) {
       setErrorMsg("Tu carrito esta vacio.");
       return;
@@ -71,6 +73,7 @@ function Checkout() {
     }
 
     setSubmitting(true);
+    let orderFallbackUrl: string | null = null;
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -80,6 +83,17 @@ function Checkout() {
       });
       if (uploadRes.error)
         throw new Error("No pudimos subir el comprobante: " + uploadRes.error.message);
+
+      orderFallbackUrl = `https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(
+        `Hola! Tuve un problema al registrar mi pedido en ${STORE.name}, pero el comprobante se subió correctamente.\n\n` +
+          `Nombre: ${parsed.data.name}\n` +
+          `Teléfono: ${parsed.data.phone}\n` +
+          `Email: ${parsed.data.email}\n` +
+          (parsed.data.address ? `Dirección: ${parsed.data.address}\n` : "") +
+          `Total: ${formatGs(totalAmount)}\n\n` +
+          `Productos:\n${items.map((i) => `• ${i.quantity}x ${i.name}`).join("\n")}\n\n` +
+          "Voy a adjuntar nuevamente el comprobante en este chat.",
+      )}`;
 
       const { data: order, error: orderErr } = await supabase
         .from("orders")
@@ -114,8 +128,9 @@ function Checkout() {
         setErrorMsg("No pudimos subir tu comprobante. Revisá tu conexión y volvé a seleccionarlo.");
       } else if (detail.includes("registrar el pedido")) {
         setErrorMsg(
-          "Recibimos los datos, pero no pudimos guardar el pedido. Intentá nuevamente; tu carrito sigue intacto.",
+          "El comprobante se subió, pero tuvimos un problema al registrar el pedido. Continuá por WhatsApp para que podamos procesarlo.",
         );
+        setWhatsAppFallbackUrl(orderFallbackUrl);
       } else {
         setErrorMsg(friendlyErrorMessage(err));
       }
@@ -324,6 +339,16 @@ function Checkout() {
                 {errorMsg && (
                   <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
                     {errorMsg}
+                    {whatsAppFallbackUrl && (
+                      <a
+                        href={whatsAppFallbackUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+                      >
+                        <MessageCircle className="size-4" /> Continuar por WhatsApp
+                      </a>
+                    )}
                   </div>
                 )}
 
