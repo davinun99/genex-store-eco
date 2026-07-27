@@ -257,7 +257,7 @@ function Home() {
               className={`mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${productsQuery.isFetching ? "opacity-60" : ""}`}
             >
               {productsQuery.data!.items.map((p) => (
-                <ProductCard key={p.id} product={p} categoryName={categoryName(p.category_id)} />
+                <ProductCard key={p.id} product={p} />
               ))}
             </div>
 
@@ -501,7 +501,7 @@ function CategoryShowcase({
                 key={product.id}
                 className="w-[72vw] max-w-[270px] shrink-0 snap-start sm:w-[260px]"
               >
-                <ProductCard product={product} categoryName={categoryName(product.category_id)} />
+                <ProductCard product={product} />
               </div>
             ))
           ) : (
