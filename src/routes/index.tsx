@@ -36,6 +36,34 @@ type SearchParams = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/")({
   validateSearch: zodValidator(searchSchema),
+  loader: async () => {
+    const [categoriesResult, productsResult] = await Promise.all([
+      inventario
+        .from("categories")
+        .select("id,name,description,is_active")
+        .eq("is_active", true)
+        .order("name", { ascending: true }),
+      inventario
+        .from("products")
+        .select(
+          "id,name,sku,description,current_stock,min_stock,purchase_price,sale_price,is_active,category_id,created_at,updated_at,image_url",
+          { count: "exact" },
+        )
+        .eq("is_active", true)
+        .gt("current_stock", 0)
+        .order("name", { ascending: true })
+        .range(0, PAGE_SIZE - 1),
+    ]);
+    if (categoriesResult.error) throw categoriesResult.error;
+    if (productsResult.error) throw productsResult.error;
+    return {
+      categories: (categoriesResult.data ?? []) as InventarioCategory[],
+      products: {
+        items: (productsResult.data ?? []) as InventarioProduct[],
+        total: productsResult.count ?? 0,
+      },
+    };
+  },
   head: () => ({
     meta: [
       { title: `${STORE.name} — Comprar online en Paraguay` },
@@ -46,6 +74,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: STORE.name },
       { property: "og:description", content: STORE.tagline },
     ],
+    links: [{ rel: "canonical", href: `${STORE.url}/` }],
   }),
   component: Home,
 });
@@ -53,6 +82,8 @@ export const Route = createFileRoute("/")({
 function Home() {
   const { cat, page, q } = Route.useSearch();
   const navigate = Route.useNavigate();
+  const loaderData = Route.useLoaderData();
+  const isDefaultView = cat === "all" && page === 1 && q === "";
   const [searchInput, setSearchInput] = useState(q);
 
   // Debounce search input -> URL
@@ -69,6 +100,7 @@ function Home() {
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
     staleTime: 5 * 60_000,
+    initialData: loaderData.categories,
     queryFn: async () => {
       const { data, error } = await inventario
         .from("categories")
@@ -83,6 +115,7 @@ function Home() {
   const productsQuery = useQuery({
     queryKey: ["products", cat, page, q],
     placeholderData: keepPreviousData,
+    initialData: isDefaultView ? loaderData.products : undefined,
     queryFn: async () => {
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
