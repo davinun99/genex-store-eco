@@ -1,5 +1,6 @@
 export const STORE = {
   name: "Genex Store",
+  url: "https://genexstore.com.py",
   tagline: "Tecnología y accesorios",
   whatsapp: "595984849454",
   email: "nunezbenitezpablo@gmail.com",

@@ -1,43 +1,118 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { inventario, type InventarioProduct } from "@/integrations/inventario/client";
 import { Header } from "@/components/header";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
 import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
+import { STORE } from "@/lib/store-config";
 import { ArrowLeft, Minus, Plus, ShoppingBag, PackageCheck, PackageX } from "lucide-react";
 import { useState } from "react";
 
+async function fetchProduct(id: string): Promise<InventarioProduct | null> {
+  const { data, error } = await inventario
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .eq("is_active", true)
+    .gt("current_stock", 0)
+    .maybeSingle();
+  if (error) throw error;
+  return data as InventarioProduct | null;
+}
+
 export const Route = createFileRoute("/producto/$id")({
+  loader: async ({ params }) => fetchProduct(params.id),
+  head: ({ loaderData: product, params }) => {
+    const url = `${STORE.url}/producto/${params.id}`;
+
+    if (!product) {
+      return {
+        meta: [
+          { title: `Producto no disponible — ${STORE.name}` },
+          { name: "robots", content: "noindex" },
+        ],
+      };
+    }
+
+    const title = `${product.name} — ${STORE.name}`;
+    const description = (
+      product.description?.trim() ||
+      `Comprá ${product.name} en ${STORE.name}. Pago por transferencia y entrega en Paraguay.`
+    ).slice(0, 160);
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        ...(product.image_url ? [{ property: "og:image", content: product.image_url }] : []),
+        { name: "twitter:card", content: product.image_url ? "summary_large_image" : "summary" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        ...(product.image_url ? [{ name: "twitter:image", content: product.image_url }] : []),
+        { property: "product:price:amount", content: String(product.sale_price) },
+        { property: "product:price:currency", content: "PYG" },
+        {
+          "script:ld+json": {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: product.name,
+            description,
+            sku: product.sku,
+            ...(product.image_url ? { image: [product.image_url] } : {}),
+            offers: {
+              "@type": "Offer",
+              url,
+              priceCurrency: "PYG",
+              price: product.sale_price,
+              availability:
+                product.current_stock > 0
+                  ? "https://schema.org/InStock"
+                  : "https://schema.org/OutOfStock",
+            },
+          },
+        },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
+  pendingComponent: () => (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <StoreLoader message="Preparando el producto" />
+      </div>
+    </div>
+  ),
+  errorComponent: ({ error }) => <ProductLoadError error={error} />,
   component: ProductPage,
 });
 
+function ProductLoadError({ error }: { error: unknown }) {
+  const router = useRouter();
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <StoreError
+          title="No pudimos abrir el producto"
+          message={friendlyErrorMessage(error)}
+          onRetry={() => router.invalidate()}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ProductPage() {
-  const { id } = Route.useParams();
+  const product = Route.useLoaderData();
   const navigate = useNavigate();
   const { addItem, setOpen } = useCart();
   const [qty, setQty] = useState(1);
-
-  const {
-    data: product,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ["product", id],
-    queryFn: async () => {
-      const { data, error } = await inventario
-        .from("products")
-        .select("*")
-        .eq("id", id)
-        .eq("is_active", true)
-        .gt("current_stock", 0)
-        .maybeSingle();
-      if (error) throw error;
-      return data as InventarioProduct | null;
-    },
-  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,18 +125,12 @@ function ProductPage() {
           <ArrowLeft className="size-4" /> Volver al catálogo
         </button>
 
-        {isLoading ? (
-          <StoreLoader message="Preparando el producto" />
-        ) : error || !product ? (
+        {!product ? (
           <StoreError
-            title={error ? "No pudimos abrir el producto" : "Este producto ya no está disponible"}
-            message={
-              error
-                ? friendlyErrorMessage(error)
-                : "Puede haberse agotado o dejado de estar disponible. Volvé al catálogo para ver otras opciones."
-            }
-            onRetry={error ? () => void refetch() : () => navigate({ to: "/" })}
-            actionLabel={error ? "Intentar de nuevo" : "Volver al catálogo"}
+            title="Este producto ya no está disponible"
+            message="Puede haberse agotado o dejado de estar disponible. Volvé al catálogo para ver otras opciones."
+            onRetry={() => navigate({ to: "/" })}
+            actionLabel="Volver al catálogo"
           />
         ) : (
           <div className="grid gap-7 lg:h-[calc(100%-36px)] lg:grid-cols-[0.9fr_1.1fr] lg:gap-10">

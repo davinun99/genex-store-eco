@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /checkout
 Disallow: /gracias
+
+Sitemap: https://genexstore.com.py/sitemap.xml
