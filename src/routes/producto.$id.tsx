@@ -73,6 +73,43 @@ export const Route = createFileRoute("/producto/$id")({
                 product.current_stock > 0
                   ? "https://schema.org/InStock"
                   : "https://schema.org/OutOfStock",
+              hasMerchantReturnPolicy: {
+                "@type": "MerchantReturnPolicy",
+                applicableCountry: "PY",
+                returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+                merchantReturnDays: STORE.returnPolicy.days,
+                returnMethod: "https://schema.org/ReturnByMail",
+                returnFees: STORE.returnPolicy.customerPaysReturnShipping
+                  ? "https://schema.org/ReturnShippingFees"
+                  : "https://schema.org/FreeReturn",
+              },
+              shippingDetails: {
+                "@type": "OfferShippingDetails",
+                shippingRate: {
+                  "@type": "MonetaryAmount",
+                  value: STORE.shipping.typicalCostPyg,
+                  currency: "PYG",
+                },
+                shippingDestination: {
+                  "@type": "DefinedRegion",
+                  addressCountry: "PY",
+                },
+                deliveryTime: {
+                  "@type": "ShippingDeliveryTime",
+                  handlingTime: {
+                    "@type": "QuantitativeValue",
+                    minValue: 0,
+                    maxValue: 1,
+                    unitCode: "DAY",
+                  },
+                  transitTime: {
+                    "@type": "QuantitativeValue",
+                    minValue: 0,
+                    maxValue: STORE.shipping.sameDay ? 0 : 1,
+                    unitCode: "DAY",
+                  },
+                },
+              },
             },
           },
         },

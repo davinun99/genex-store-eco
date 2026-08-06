@@ -6,6 +6,14 @@ export const STORE = {
   email: "nunezbenitezpablo@gmail.com",
   address: "Sobre Dr. Sosa, casi Avenida Madame Lynch",
   mapsUrl: "https://maps.app.goo.gl/Q8PyZxvsWVJMCSgR8",
+  returnPolicy: {
+    days: 7,
+    customerPaysReturnShipping: true,
+  },
+  shipping: {
+    typicalCostPyg: 15000,
+    sameDay: true,
+  },
 };
 
 export interface BankAccount {
