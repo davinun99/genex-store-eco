@@ -8,6 +8,12 @@ import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
 import { ArrowLeft, Minus, Plus, ShoppingBag, PackageCheck, PackageX } from "lucide-react";
 import { useState } from "react";
+import {
+  calculateDecantPrice,
+  DECANT_SIZES,
+  getBottleVolumeMl,
+  isPerfumeProduct,
+} from "@/lib/perfume-decants";
 
 export const Route = createFileRoute("/producto/$id")({
   component: ProductPage,
@@ -18,6 +24,7 @@ function ProductPage() {
   const navigate = useNavigate();
   const { addItem, setOpen } = useCart();
   const [qty, setQty] = useState(1);
+  const [selectedSizeMl, setSelectedSizeMl] = useState<number | null>(null);
 
   const {
     data: product,
@@ -38,6 +45,28 @@ function ProductPage() {
       return data as InventarioProduct | null;
     },
   });
+
+  const categoryQuery = useQuery({
+    queryKey: ["category", product?.category_id],
+    enabled: Boolean(product?.category_id),
+    queryFn: async () => {
+      const { data, error } = await inventario
+        .from("categories")
+        .select("name")
+        .eq("id", product!.category_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.name;
+    },
+  });
+
+  const isPerfume = product ? isPerfumeProduct(categoryQuery.data, product.name) : false;
+  const bottleVolumeMl = product ? getBottleVolumeMl(product.name, product.description) : 100;
+  const selectedPrice = product
+    ? selectedSizeMl
+      ? calculateDecantPrice(Number(product.sale_price), bottleVolumeMl, selectedSizeMl)
+      : Number(product.sale_price)
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,7 +113,7 @@ function ProductPage() {
                 {product.name}
               </h1>
               <div className="mt-4 font-display text-3xl font-bold xl:text-4xl">
-                {formatGs(product.sale_price)}
+                {formatGs(selectedPrice)}
               </div>
 
               <div className="mt-3 flex items-center gap-2 text-sm">
@@ -107,6 +136,37 @@ function ProductPage() {
 
               {product.current_stock > 0 && (
                 <div className="mt-5 border border-black/15 p-4 xl:p-5">
+                  {isPerfume && (
+                    <fieldset className="mb-5 border-b border-black/10 pb-5">
+                      <legend className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Elegí la presentación
+                      </legend>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        <PresentationButton
+                          label={`Completo · ${bottleVolumeMl} ml`}
+                          price={Number(product.sale_price)}
+                          selected={selectedSizeMl === null}
+                          onClick={() => setSelectedSizeMl(null)}
+                        />
+                        {DECANT_SIZES.map((sizeMl) => (
+                          <PresentationButton
+                            key={sizeMl}
+                            label={`${sizeMl} ml`}
+                            price={calculateDecantPrice(
+                              Number(product.sale_price),
+                              bottleVolumeMl,
+                              sizeMl,
+                            )}
+                            selected={selectedSizeMl === sizeMl}
+                            onClick={() => setSelectedSizeMl(sizeMl)}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        Los tamaños de 5 ml y 10 ml se entregan fraccionados en atomizador.
+                      </p>
+                    </fieldset>
+                  )}
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -136,7 +196,7 @@ function ProductPage() {
                         Total
                       </p>
                       <p className="mt-2 font-display text-xl font-bold">
-                        {formatGs(Number(product.sale_price) * qty)}
+                        {formatGs(selectedPrice * qty)}
                       </p>
                     </div>
                   </div>
@@ -147,10 +207,11 @@ function ProductPage() {
                         {
                           id: product.id,
                           name: product.name,
-                          price: Number(product.sale_price),
+                          price: selectedPrice,
                           stock: product.current_stock,
                           sku: product.sku,
                           imageUrl: product.image_url,
+                          sizeMl: selectedSizeMl ?? undefined,
                         },
                         qty,
                       );
@@ -167,5 +228,35 @@ function ProductPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function PresentationButton({
+  label,
+  price,
+  selected,
+  onClick,
+}: {
+  label: string;
+  price: number;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`min-h-14 border px-2 py-2 text-center transition ${
+        selected ? "border-black bg-black text-white" : "border-black/20 hover:border-black"
+      }`}
+    >
+      <span className="block text-xs font-bold">{label}</span>
+      <span
+        className={`mt-0.5 block text-[10px] ${selected ? "text-white/75" : "text-muted-foreground"}`}
+      >
+        {formatGs(price)}
+      </span>
+    </button>
   );
 }

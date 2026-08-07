@@ -6,6 +6,7 @@ import { StoreSpinner } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
 import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
+import { getCartItemKey } from "@/lib/cart-item";
 import { BANK_ACCOUNTS, QUICK_ALIAS, STORE } from "@/lib/store-config";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Building2, Copy, Upload, CheckCircle2, MessageCircle } from "lucide-react";
@@ -91,7 +92,7 @@ function Checkout() {
           `Email: ${parsed.data.email}\n` +
           (parsed.data.address ? `Dirección: ${parsed.data.address}\n` : "") +
           `Total: ${formatGs(totalAmount)}\n\n` +
-          `Productos:\n${items.map((i) => `• ${i.quantity}x ${i.name}`).join("\n")}\n\n` +
+          `Productos:\n${items.map((i) => `• ${i.quantity}x ${i.name}${i.sizeMl ? ` (${i.sizeMl} ml)` : ""}`).join("\n")}\n\n` +
           "Voy a adjuntar nuevamente el comprobante en este chat.",
       )}`;
 
@@ -110,6 +111,7 @@ function Checkout() {
             id: i.id,
             sku: i.sku,
             name: i.name,
+            ...(i.sizeMl ? { presentation_ml: i.sizeMl } : {}),
             quantity: i.quantity,
             unit_price: i.price,
             subtotal: i.price * i.quantity,
@@ -320,9 +322,17 @@ function Checkout() {
                 <h2 className="font-display text-lg font-bold">Resumen</h2>
                 <ul className="mt-4 divide-y divide-border">
                   {items.map((i) => (
-                    <li key={i.id} className="flex items-start justify-between gap-3 py-3 text-sm">
+                    <li
+                      key={getCartItemKey(i)}
+                      className="flex items-start justify-between gap-3 py-3 text-sm"
+                    >
                       <div>
                         <div className="font-semibold leading-snug">{i.name}</div>
+                        {i.sizeMl && (
+                          <div className="text-xs font-medium text-muted-foreground">
+                            {i.sizeMl} ml
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground">
                           {i.quantity} × {formatGs(i.price)}
                         </div>
@@ -368,7 +378,11 @@ function Checkout() {
                 <a
                   href={`https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(
                     `Hola! Quiero hacer un pedido en ${STORE.name} por ${formatGs(totalAmount)}:\n` +
-                      items.map((i) => `• ${i.quantity}x ${i.name}`).join("\n"),
+                      items
+                        .map(
+                          (i) => `• ${i.quantity}x ${i.name}${i.sizeMl ? ` (${i.sizeMl} ml)` : ""}`,
+                        )
+                        .join("\n"),
                   )}`}
                   target="_blank"
                   rel="noreferrer"
