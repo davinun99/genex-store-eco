@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { inventario } from "@/integrations/inventario/client";
+import { getCartItemKey } from "@/lib/cart-item";
 
 export interface CartItem {
   id: string;
@@ -17,6 +18,7 @@ export interface CartItem {
   stock: number;
   sku: string;
   imageUrl?: string | null;
+  sizeMl?: number;
 }
 
 interface CartContextValue {
@@ -92,22 +94,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalAmount,
       addItem: (incoming, qty = 1) => {
         setItems((prev) => {
-          const existing = prev.find((p) => p.id === incoming.id);
+          const incomingKey = getCartItemKey(incoming);
+          const existing = prev.find((p) => getCartItemKey(p) === incomingKey);
           const max = incoming.stock;
           if (existing) {
             const nextQty = Math.min(existing.quantity + qty, max);
             return prev.map((p) =>
-              p.id === incoming.id ? { ...p, ...incoming, quantity: nextQty } : p,
+              getCartItemKey(p) === incomingKey ? { ...p, ...incoming, quantity: nextQty } : p,
             );
           }
           return [...prev, { ...incoming, quantity: Math.min(qty, max) }];
         });
       },
-      removeItem: (id) => setItems((prev) => prev.filter((p) => p.id !== id)),
+      removeItem: (id) => setItems((prev) => prev.filter((p) => getCartItemKey(p) !== id)),
       setQuantity: (id, qty) =>
         setItems((prev) =>
           prev.map((p) =>
-            p.id === id ? { ...p, quantity: Math.max(1, Math.min(qty, p.stock)) } : p,
+            getCartItemKey(p) === id ? { ...p, quantity: Math.max(1, Math.min(qty, p.stock)) } : p,
           ),
         ),
       clear: () => setItems([]),
