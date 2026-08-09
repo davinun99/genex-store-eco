@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { inventario, type InventarioProduct } from "@/integrations/inventario/client";
 import { Header } from "@/components/header";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
@@ -156,6 +157,7 @@ function ProductPage() {
   const navigate = useNavigate();
   const { addItem, setOpen } = useCart();
   const [qty, setQty] = useState(1);
+  const [selectedSizeMl, setSelectedSizeMl] = useState<number | null>(null);
 
   const categoryQuery = useQuery({
     queryKey: ["category", product?.category_id],
