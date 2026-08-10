@@ -14,6 +14,7 @@ import { ProductCard } from "@/components/product-card";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
 import { STORE } from "@/lib/store-config";
+import { isStorefrontProduct } from "@/lib/storefront-product";
 import {
   ArrowRight,
   MessageCircle,
@@ -65,14 +66,20 @@ async function fetchProductsPage(cat: string, page: number, search: string) {
     const results = await Promise.all(OTROS_IDS.map((categoryId) => fetchAllProducts(categoryId)));
     const all = results
       .flat()
-      .filter((product) => product.current_stock > 0 && matchesSearch(product, search));
+      .filter(
+        (product) =>
+          product.current_stock > 0 &&
+          isStorefrontProduct(product) &&
+          matchesSearch(product, search),
+      );
     const from = (page - 1) * PAGE_SIZE;
     return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
   }
 
   const products = await fetchAllProducts(cat === "all" ? undefined : cat);
   const all = products.filter(
-    (product) => product.current_stock > 0 && matchesSearch(product, search),
+    (product) =>
+      product.current_stock > 0 && isStorefrontProduct(product) && matchesSearch(product, search),
   );
   const from = (page - 1) * PAGE_SIZE;
   return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
@@ -199,17 +206,17 @@ function Home() {
       <section className="border-b border-black bg-black text-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
           <div className="max-w-4xl">
-            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/55">
-              Tienda online · Paraguay
+            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ff6259]">
+              Promoción por tiempo limitado
             </p>
             <h1 className="font-display text-5xl font-bold leading-[0.92] tracking-[-0.065em] sm:text-7xl lg:text-8xl">
-              LO QUE BUSCÁS.
+              HASTA 30% OFF.
               <br />
-              SIN COMPLICACIONES.
+              EN TODA LA TIENDA.
             </h1>
             <p className="mt-7 max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">
-              Tecnología y accesorios con stock real. Elegí, agregá al carrito y coordinamos la
-              entrega.
+              Aprovechá precios especiales en productos seleccionados de todas nuestras categorías.
+              El descuento ya aparece aplicado.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a

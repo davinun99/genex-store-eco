@@ -3,10 +3,12 @@ import { Plus, PackageX } from "lucide-react";
 import type { InventarioProduct } from "@/integrations/inventario/client";
 import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
+import { getPromotionPrice } from "@/lib/promotion";
 
 export function ProductCard({ product }: { product: InventarioProduct }) {
   const { addItem, setOpen } = useCart();
   const outOfStock = product.current_stock <= 0;
+  const promotion = getPromotionPrice(product);
 
   return (
     <article className="group flex flex-col overflow-hidden border border-black/10 bg-white transition hover:border-black">
@@ -31,6 +33,11 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
             <PackageX className="size-3" /> Sin stock
           </span>
         )}
+        {promotion.isPromoted && !outOfStock && (
+          <span className="absolute left-3 top-3 bg-[#ff3b30] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+            {promotion.discountPercent}% OFF
+          </span>
+        )}
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -43,14 +50,24 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
         </Link>
         <div className="text-xs text-muted-foreground">Stock {product.current_stock}</div>
         <div className="mt-auto flex items-center justify-between pt-3">
-          <div className="font-display text-lg font-bold">{formatGs(product.sale_price)}</div>
+          <div>
+            {promotion.isPromoted && (
+              <div className="text-xs text-muted-foreground line-through">
+                {formatGs(promotion.originalPrice)}
+              </div>
+            )}
+            <div className="font-display text-lg font-bold text-[#d21f18]">
+              {formatGs(promotion.price)}
+            </div>
+          </div>
           <button
             disabled={outOfStock}
             onClick={() => {
               addItem({
                 id: product.id,
                 name: product.name,
-                price: Number(product.sale_price),
+                price: promotion.price,
+                originalPrice: promotion.isPromoted ? promotion.originalPrice : undefined,
                 stock: product.current_stock,
                 sku: product.sku,
                 imageUrl: product.image_url,

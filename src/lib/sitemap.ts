@@ -1,5 +1,6 @@
 import { inventario } from "@/integrations/inventario/client";
 import { STORE } from "@/lib/store-config";
+import { isStorefrontProduct } from "@/lib/storefront-product";
 
 function escapeXml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -11,11 +12,12 @@ export async function generateSitemapXml(): Promise<string> {
   try {
     const { data, error } = await inventario
       .from("products")
-      .select("id,updated_at")
+      .select("id,name,sku,updated_at")
       .eq("is_active", true)
       .gt("current_stock", 0);
     if (error) throw error;
     for (const product of data ?? []) {
+      if (!isStorefrontProduct(product)) continue;
       urls.push({
         loc: `${STORE.url}/producto/${product.id}`,
         lastmod: product.updated_at ? new Date(product.updated_at).toISOString() : undefined,
