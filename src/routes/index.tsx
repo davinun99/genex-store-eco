@@ -44,42 +44,38 @@ function matchesSearch(product: InventarioProduct, search: string) {
   );
 }
 
+async function fetchAllProducts(categoryId?: string) {
+  const limit = 100;
+  const firstPage = await getEcommerceProducts({ categoryId, page: 1, limit });
+  const totalPages = Math.ceil(firstPage.total / limit);
+
+  if (totalPages <= 1) return firstPage.items;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getEcommerceProducts({ categoryId, page: index + 2, limit }),
+    ),
+  );
+
+  return [firstPage, ...remainingPages].flatMap((result) => result.items);
+}
+
 async function fetchProductsPage(cat: string, page: number, search: string) {
   if (OTROS_IDS.includes(cat)) {
-    const results = await Promise.all(
-      OTROS_IDS.map((categoryId) => getEcommerceProducts({ categoryId, page: 1, limit: 500 })),
-    );
+    const results = await Promise.all(OTROS_IDS.map((categoryId) => fetchAllProducts(categoryId)));
     const all = results
-      .flatMap((result) => result.items)
+      .flat()
       .filter((product) => product.current_stock > 0 && matchesSearch(product, search));
     const from = (page - 1) * PAGE_SIZE;
     return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
   }
 
-  if (search.trim()) {
-    const result = await getEcommerceProducts({
-      categoryId: cat === "all" ? undefined : cat,
-      page: 1,
-      limit: 500,
-    });
-    const all = result.items.filter(
-      (product) => product.current_stock > 0 && matchesSearch(product, search),
-    );
-    const from = (page - 1) * PAGE_SIZE;
-    return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
-  }
-
-  const result = await getEcommerceProducts({
-    categoryId: cat === "all" ? undefined : cat,
-    page,
-    limit: PAGE_SIZE,
-  });
-  const items = result.items.filter((product) => product.current_stock > 0);
-
-  return {
-    items,
-    total: Math.max(0, result.total - (result.items.length - items.length)),
-  };
+  const products = await fetchAllProducts(cat === "all" ? undefined : cat);
+  const all = products.filter(
+    (product) => product.current_stock > 0 && matchesSearch(product, search),
+  );
+  const from = (page - 1) * PAGE_SIZE;
+  return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
 }
 
 const searchSchema = z.object({
