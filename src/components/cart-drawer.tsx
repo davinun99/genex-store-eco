@@ -92,6 +92,11 @@ export function CartDrawer() {
                           </button>
                         </div>
                         <div className="text-sm font-semibold">
+                          {item.originalPrice && item.originalPrice > item.price && (
+                            <div className="text-right text-[11px] font-normal text-muted-foreground line-through">
+                              {formatGs(item.originalPrice * item.quantity)}
+                            </div>
+                          )}
                           {formatGs(item.price * item.quantity)}
                         </div>
                       </div>
@@ -116,6 +121,9 @@ export function CartDrawer() {
               <span className="text-muted-foreground">{totalItems} producto(s)</span>
               <span className="font-display text-xl font-bold">{formatGs(totalAmount)}</span>
             </div>
+            <p className="pb-3 text-center text-xs font-semibold text-[#d21f18]">
+              Promoción aplicada en tu carrito
+            </p>
             <Link
               to="/checkout"
               onClick={() => setOpen(false)}

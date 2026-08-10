@@ -9,11 +9,14 @@ import {
 } from "react";
 import { getEcommerceProduct } from "@/integrations/inventario/ecommerce-api";
 import { getCartItemKey } from "@/lib/cart-item";
+import { calculateDecantPrice, getBottleVolumeMl } from "@/lib/perfume-decants";
+import { getPromotionPrice } from "@/lib/promotion";
 
 export interface CartItem {
   id: string;
   name: string;
   price: number;
+  originalPrice?: number;
   quantity: number;
   stock: number;
   sku: string;
@@ -40,7 +43,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const imagesUpdated = useRef(false);
+  const productsUpdated = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -63,22 +66,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, hydrated]);
 
   useEffect(() => {
-    if (!hydrated || imagesUpdated.current) return;
-    imagesUpdated.current = true;
-    const missingIds = items.filter((item) => !item.imageUrl).map((item) => item.id);
-    if (missingIds.length === 0) return;
+    if (!hydrated || productsUpdated.current || items.length === 0) return;
+    productsUpdated.current = true;
+    const productIds = [...new Set(items.map((item) => item.id))];
 
-    void Promise.all(missingIds.map((id) => getEcommerceProduct(id)))
+    void Promise.all(productIds.map((id) => getEcommerceProduct(id)))
       .then((products) => {
-        const images = new Map(
-          products
-            .filter((product) => product !== null)
-            .map((product) => [product.id, product.image_url]),
+        const latest = new Map(
+          products.filter((product) => product !== null).map((product) => [product.id, product]),
         );
         setItems((current) =>
-          current.map((item) =>
-            images.has(item.id) ? { ...item, imageUrl: images.get(item.id) } : item,
-          ),
+          current.map((item) => {
+            const product = latest.get(item.id);
+            if (!product) return item;
+            const promotion = getPromotionPrice(product);
+            const bottleVolumeMl = getBottleVolumeMl(product.name, product.description);
+            const price = item.sizeMl
+              ? calculateDecantPrice(promotion.price, bottleVolumeMl, item.sizeMl)
+              : promotion.price;
+            const originalPrice = item.sizeMl
+              ? calculateDecantPrice(promotion.originalPrice, bottleVolumeMl, item.sizeMl)
+              : promotion.originalPrice;
+            return {
+              ...item,
+              price,
+              originalPrice: price < originalPrice ? originalPrice : undefined,
+              stock: product.current_stock,
+              imageUrl: product.image_url,
+            };
+          }),
         );
       })
       .catch(() => {

@@ -8,6 +8,7 @@ import { friendlyErrorMessage } from "@/lib/store-errors";
 import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
 import { STORE } from "@/lib/store-config";
+import { getPromotionPrice } from "@/lib/promotion";
 import { ArrowLeft, Minus, Plus, ShoppingBag, PackageCheck, PackageX } from "lucide-react";
 import { useState } from "react";
 import {
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/producto/$id")({
     }
 
     const title = `${product.name} — ${STORE.name}`;
+    const promotion = getPromotionPrice(product);
     const description = (
       product.description?.trim() ||
       `Comprá ${product.name} en ${STORE.name}. Pago por transferencia y entrega en Paraguay.`
@@ -55,7 +57,7 @@ export const Route = createFileRoute("/producto/$id")({
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         ...(product.image_url ? [{ name: "twitter:image", content: product.image_url }] : []),
-        { property: "product:price:amount", content: String(product.sale_price) },
+        { property: "product:price:amount", content: String(promotion.price) },
         { property: "product:price:currency", content: "PYG" },
         {
           "script:ld+json": {
@@ -69,7 +71,7 @@ export const Route = createFileRoute("/producto/$id")({
               "@type": "Offer",
               url,
               priceCurrency: "PYG",
-              price: product.sale_price,
+              price: promotion.price,
               availability:
                 product.current_stock > 0
                   ? "https://schema.org/InStock"
@@ -169,10 +171,16 @@ function ProductPage() {
 
   const isPerfume = product ? isPerfumeProduct(categoryQuery.data, product.name) : false;
   const bottleVolumeMl = product ? getBottleVolumeMl(product.name, product.description) : 100;
+  const promotion = product ? getPromotionPrice(product) : null;
   const selectedPrice = product
     ? selectedSizeMl
-      ? calculateDecantPrice(Number(product.sale_price), bottleVolumeMl, selectedSizeMl)
-      : Number(product.sale_price)
+      ? calculateDecantPrice(promotion!.price, bottleVolumeMl, selectedSizeMl)
+      : promotion!.price
+    : 0;
+  const selectedOriginalPrice = product
+    ? selectedSizeMl
+      ? calculateDecantPrice(promotion!.originalPrice, bottleVolumeMl, selectedSizeMl)
+      : promotion!.originalPrice
     : 0;
 
   return (
@@ -213,8 +221,20 @@ function ProductPage() {
               <h1 className="font-display text-3xl font-bold uppercase leading-[0.98] tracking-[-0.055em] sm:text-4xl xl:text-5xl">
                 {product.name}
               </h1>
-              <div className="mt-4 font-display text-3xl font-bold xl:text-4xl">
-                {formatGs(selectedPrice)}
+              <div className="mt-4 flex flex-wrap items-end gap-3">
+                <div className="font-display text-3xl font-bold text-[#d21f18] xl:text-4xl">
+                  {formatGs(selectedPrice)}
+                </div>
+                {promotion?.isPromoted && (
+                  <>
+                    <div className="pb-1 text-base text-muted-foreground line-through">
+                      {formatGs(selectedOriginalPrice)}
+                    </div>
+                    <span className="mb-1 bg-[#ff3b30] px-2 py-1 text-xs font-bold text-white">
+                      {promotion.discountPercent}% OFF
+                    </span>
+                  </>
+                )}
               </div>
 
               <div className="mt-3 flex items-center gap-2 text-sm">
@@ -245,7 +265,7 @@ function ProductPage() {
                       <div className="mt-2 grid grid-cols-3 gap-2">
                         <PresentationButton
                           label={`Completo · ${bottleVolumeMl} ml`}
-                          price={Number(product.sale_price)}
+                          price={promotion!.price}
                           selected={selectedSizeMl === null}
                           onClick={() => setSelectedSizeMl(null)}
                         />
@@ -253,11 +273,7 @@ function ProductPage() {
                           <PresentationButton
                             key={sizeMl}
                             label={`${sizeMl} ml`}
-                            price={calculateDecantPrice(
-                              Number(product.sale_price),
-                              bottleVolumeMl,
-                              sizeMl,
-                            )}
+                            price={calculateDecantPrice(promotion!.price, bottleVolumeMl, sizeMl)}
                             selected={selectedSizeMl === sizeMl}
                             onClick={() => setSelectedSizeMl(sizeMl)}
                           />
@@ -309,6 +325,10 @@ function ProductPage() {
                           id: product.id,
                           name: product.name,
                           price: selectedPrice,
+                          originalPrice:
+                            selectedPrice < selectedOriginalPrice
+                              ? selectedOriginalPrice
+                              : undefined,
                           stock: product.current_stock,
                           sku: product.sku,
                           imageUrl: product.image_url,

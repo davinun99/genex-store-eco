@@ -105,6 +105,9 @@ function Checkout() {
           product_id: i.id,
           ...(i.sizeMl ? { presentation_ml: i.sizeMl } : {}),
           quantity: i.quantity,
+          unit_price: i.price,
+          ...(i.originalPrice ? { original_unit_price: i.originalPrice } : {}),
+          promotion: "HASTA_30_OFF",
         })),
       }).catch((error: unknown) => {
         const detail = error instanceof Error ? error.message : "";
@@ -333,6 +336,9 @@ function Checkout() {
                 <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
                   <span className="text-sm text-muted-foreground">Total</span>
                   <span className="font-display text-2xl font-bold">{formatGs(totalAmount)}</span>
+                </div>
+                <div className="mt-2 text-right text-xs font-semibold text-[#d21f18]">
+                  Promoción aplicada
                 </div>
 
                 {errorMsg && (
