@@ -19,7 +19,12 @@ import {
 } from "lucide-react";
 import { inventario } from "@/integrations/inventario/client";
 import { formatGs } from "@/lib/format";
-import { getAdminOrders, updateAdminOrderStatus } from "@/lib/admin-orders.functions";
+import {
+  getAdminEcommerceOrders,
+  getEcommerceMe,
+  getEcommerceProducts,
+  updateEcommerceOrderStatus,
+} from "@/integrations/inventario/ecommerce-api";
 
 type AdminProduct = {
   id: string;
@@ -91,9 +96,7 @@ function AdminLogin() {
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
           Panel administrativo
         </h1>
-        <p className="mt-2 text-sm text-black/55">
-          Ingresá con tu usuario administrador de Inventario Amigo.
-        </p>
+        <p className="mt-2 text-sm text-black/55">Ingresá con tu usuario de Inventario Amigo.</p>
         <form onSubmit={login} className="mt-7 space-y-4">
           <label className="block text-xs font-semibold uppercase tracking-wider">
             Correo
@@ -130,6 +133,35 @@ function AdminLogin() {
 
 function AdminPanel({ session }: { session: Session }) {
   const [section, setSection] = useState<AdminSection>("orders");
+  const permissionsQuery = useQuery({
+    queryKey: ["ecommerce-me", session.user.id],
+    queryFn: () => getEcommerceMe(session),
+  });
+  const access = permissionsQuery.data;
+  const canManageOrders = Boolean(
+    access?.roles.some((role) => ["admin", "ecommerce_manager"].includes(role)) ||
+    access?.permissions.includes("ecommerce.orders.read") ||
+    access?.sections.some((value) => /pedido|order/i.test(value)),
+  );
+  const canManageImages = Boolean(
+    access?.roles.some((role) =>
+      ["admin", "ecommerce_manager", "vendedor", "seller"].includes(role),
+    ) ||
+    access?.permissions.includes("products.images.manage") ||
+    access?.sections.some((value) => /imagen|image|foto|product/i.test(value)),
+  );
+
+  useEffect(() => {
+    if (access && !canManageOrders && canManageImages) setSection("images");
+  }, [access, canManageImages, canManageOrders]);
+
+  if (permissionsQuery.isLoading) return <CenteredMessage message="Cargando permisos…" />;
+  if (permissionsQuery.error || (!canManageOrders && !canManageImages)) {
+    return (
+      <CenteredMessage message="Tu usuario no tiene permisos para acceder al panel del e-commerce." />
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f4f4f2]">
       <header className="border-b border-black/10 bg-white">
@@ -153,20 +185,24 @@ function AdminPanel({ session }: { session: Session }) {
           className="mb-7 grid grid-cols-2 gap-2 border border-black/10 bg-white p-1.5 sm:flex sm:w-fit"
           aria-label="Secciones administrativas"
         >
-          <AdminNavButton
-            active={section === "orders"}
-            onClick={() => setSection("orders")}
-            icon={<LayoutDashboard className="size-4" />}
-            label="Pedidos"
-          />
-          <AdminNavButton
-            active={section === "images"}
-            onClick={() => setSection("images")}
-            icon={<Images className="size-4" />}
-            label="Cargar fotos"
-          />
+          {canManageOrders && (
+            <AdminNavButton
+              active={section === "orders"}
+              onClick={() => setSection("orders")}
+              icon={<LayoutDashboard className="size-4" />}
+              label="Pedidos"
+            />
+          )}
+          {canManageImages && (
+            <AdminNavButton
+              active={section === "images"}
+              onClick={() => setSection("images")}
+              icon={<Images className="size-4" />}
+              label="Cargar fotos"
+            />
+          )}
         </nav>
-        {section === "orders" ? (
+        {section === "orders" && canManageOrders ? (
           <OrdersDashboard session={session} />
         ) : (
           <ProductImageManager email={session.user.email ?? "Admin"} />
@@ -202,8 +238,8 @@ function OrdersDashboard({ session }: { session: Session }) {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("todos");
   const ordersQuery = useQuery({
-    queryKey: ["admin-orders", session.access_token],
-    queryFn: () => getAdminOrders({ data: { accessToken: session.access_token } }),
+    queryKey: ["admin-orders"],
+    queryFn: () => getAdminEcommerceOrders(session),
   });
   const statusMutation = useMutation({
     mutationFn: ({
@@ -212,7 +248,7 @@ function OrdersDashboard({ session }: { session: Session }) {
     }: {
       orderId: string;
       status: "pendiente" | "verificado" | "rechazado";
-    }) => updateAdminOrderStatus({ data: { accessToken: session.access_token, orderId, status } }),
+    }) => updateEcommerceOrderStatus(session, orderId, status),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
   });
   const orders = ordersQuery.data ?? [];
@@ -272,12 +308,9 @@ function OrdersDashboard({ session }: { session: Session }) {
       ) : ordersQuery.error ? (
         <CenteredMessage
           message={
-            ordersQuery.error instanceof Error &&
-            ordersQuery.error.message.includes("SUPABASE_SERVICE_ROLE_KEY")
-              ? "Falta configurar el acceso privado al backend de pedidos (SUPABASE_SERVICE_ROLE_KEY)."
-              : ordersQuery.error instanceof Error && ordersQuery.error.message.includes("sesión")
-                ? "Tu sesión administrativa venció. Volvé a iniciar sesión."
-                : "No se pudieron cargar los pedidos. Revisá la configuración del backend e intentá otra vez."
+            ordersQuery.error instanceof Error && ordersQuery.error.message.includes("JWT")
+              ? "Tu sesión administrativa venció. Volvé a iniciar sesión."
+              : "No se pudieron cargar los pedidos. Intentá nuevamente."
           }
         />
       ) : filtered.length === 0 ? (
@@ -314,7 +347,8 @@ function OrdersDashboard({ session }: { session: Session }) {
                       {items.map((item, index) => (
                         <li key={index} className="flex justify-between gap-4">
                           <span>
-                            {String(item.quantity ?? 1)}× {String(item.name ?? "Producto")}
+                            {String(item.quantity ?? 1)}×{" "}
+                            {String(item.product_name ?? item.name ?? "Producto")}
                             {item.presentation_ml ? ` · ${String(item.presentation_ml)} ml` : ""}
                           </span>
                           <span className="shrink-0 text-black/50">
@@ -336,9 +370,9 @@ function OrdersDashboard({ session }: { session: Session }) {
                     </p>
                   </div>
                   <div className="flex min-w-40 flex-col gap-2">
-                    {order.receipt_signed_url ? (
+                    {order.receipt_url ? (
                       <a
-                        href={order.receipt_signed_url}
+                        href={order.receipt_url}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center justify-center gap-2 border border-black px-3 py-2.5 text-xs font-semibold hover:bg-black hover:text-white"
@@ -422,12 +456,8 @@ function ProductImageManager({ email }: { email: string }) {
   const productsQuery = useQuery({
     queryKey: ["admin-products-images"],
     queryFn: async () => {
-      const { data, error } = await inventario
-        .from("products")
-        .select("id,name,sku,image_url")
-        .order("name", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as AdminProduct[];
+      const { items } = await getEcommerceProducts({ page: 1, limit: 500 });
+      return items as AdminProduct[];
     },
   });
 

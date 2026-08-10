@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { inventario, type InventarioProduct } from "@/integrations/inventario/client";
+import { getEcommerceProduct } from "@/integrations/inventario/ecommerce-api";
 import { Header } from "@/components/header";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
@@ -17,15 +18,7 @@ import {
 } from "@/lib/perfume-decants";
 
 async function fetchProduct(id: string): Promise<InventarioProduct | null> {
-  const { data, error } = await inventario
-    .from("products")
-    .select("*")
-    .eq("id", id)
-    .eq("is_active", true)
-    .gt("current_stock", 0)
-    .maybeSingle();
-  if (error) throw error;
-  return data as InventarioProduct | null;
+  return getEcommerceProduct(id);
 }
 
 export const Route = createFileRoute("/producto/$id")({

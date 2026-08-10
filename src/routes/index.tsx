@@ -8,6 +8,7 @@ import {
   type InventarioCategory,
   type InventarioProduct,
 } from "@/integrations/inventario/client";
+import { getEcommerceProducts } from "@/integrations/inventario/ecommerce-api";
 import { Header } from "@/components/header";
 import { ProductCard } from "@/components/product-card";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
@@ -27,6 +28,25 @@ const PAGE_SIZE = 12;
 const OTROS_IDS = ["684e85ce-139e-4272-8251-b08150768e3a", "35995509-7b9d-48e8-a00d-6d63bbd02fd4"];
 const OTROS_PRIMARY_ID = "684e85ce-139e-4272-8251-b08150768e3a";
 
+async function fetchProductsPage(cat: string, page: number, search: string) {
+  if (OTROS_IDS.includes(cat)) {
+    const results = await Promise.all(
+      OTROS_IDS.map((categoryId) =>
+        getEcommerceProducts({ categoryId, search, page: 1, limit: 500 }),
+      ),
+    );
+    const all = results.flatMap((result) => result.items);
+    const from = (page - 1) * PAGE_SIZE;
+    return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
+  }
+  return getEcommerceProducts({
+    categoryId: cat === "all" ? undefined : cat,
+    search,
+    page,
+    limit: PAGE_SIZE,
+  });
+}
+
 const searchSchema = z.object({
   cat: fallback(z.string(), "all").default("all"),
   page: fallback(z.number().int().min(1), 1).default(1),
@@ -43,25 +63,12 @@ export const Route = createFileRoute("/")({
         .select("id,name,description,is_active")
         .eq("is_active", true)
         .order("name", { ascending: true }),
-      inventario
-        .from("products")
-        .select(
-          "id,name,sku,description,current_stock,min_stock,purchase_price,sale_price,is_active,category_id,created_at,updated_at,image_url",
-          { count: "exact" },
-        )
-        .eq("is_active", true)
-        .gt("current_stock", 0)
-        .order("name", { ascending: true })
-        .range(0, PAGE_SIZE - 1),
+      fetchProductsPage("all", 1, ""),
     ]);
     if (categoriesResult.error) throw categoriesResult.error;
-    if (productsResult.error) throw productsResult.error;
     return {
       categories: (categoriesResult.data ?? []) as InventarioCategory[],
-      products: {
-        items: (productsResult.data ?? []) as InventarioProduct[],
-        total: productsResult.count ?? 0,
-      },
+      products: productsResult,
     };
   },
   head: () => ({
@@ -117,29 +124,7 @@ function Home() {
     placeholderData: keepPreviousData,
     initialData: isDefaultView ? loaderData.products : undefined,
     queryFn: async () => {
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      let query = inventario
-        .from("products")
-        .select(
-          "id,name,sku,description,current_stock,min_stock,purchase_price,sale_price,is_active,category_id,created_at,updated_at,image_url",
-          { count: "exact" },
-        )
-        .eq("is_active", true)
-        .gt("current_stock", 0)
-        .order("name", { ascending: true })
-        .range(from, to);
-      if (cat !== "all") {
-        if (OTROS_IDS.includes(cat)) {
-          query = query.in("category_id", OTROS_IDS);
-        } else {
-          query = query.eq("category_id", cat);
-        }
-      }
-      if (q.trim()) query = query.or(`name.ilike.%${q.trim()}%,sku.ilike.%${q.trim()}%`);
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { items: (data ?? []) as InventarioProduct[], total: count ?? 0 };
+      return fetchProductsPage(cat, page, q.trim());
     },
   });
 
