@@ -9,6 +9,7 @@ import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
 import { STORE } from "@/lib/store-config";
 import { getPromotionPrice } from "@/lib/promotion";
+import { isStorefrontProduct } from "@/lib/storefront-product";
 import { ArrowLeft, Minus, Plus, ShoppingBag, PackageCheck, PackageX } from "lucide-react";
 import { useState } from "react";
 import {
@@ -20,7 +21,7 @@ import {
 
 async function fetchProduct(id: string): Promise<InventarioProduct | null> {
   const product = await getEcommerceProduct(id);
-  return product && product.current_stock > 0 ? product : null;
+  return product && product.current_stock > 0 && isStorefrontProduct(product) ? product : null;
 }
 
 export const Route = createFileRoute("/producto/$id")({

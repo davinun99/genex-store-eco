@@ -14,6 +14,7 @@ import { ProductCard } from "@/components/product-card";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
 import { STORE } from "@/lib/store-config";
+import { isStorefrontProduct } from "@/lib/storefront-product";
 import {
   ArrowRight,
   MessageCircle,
@@ -65,14 +66,20 @@ async function fetchProductsPage(cat: string, page: number, search: string) {
     const results = await Promise.all(OTROS_IDS.map((categoryId) => fetchAllProducts(categoryId)));
     const all = results
       .flat()
-      .filter((product) => product.current_stock > 0 && matchesSearch(product, search));
+      .filter(
+        (product) =>
+          product.current_stock > 0 &&
+          isStorefrontProduct(product) &&
+          matchesSearch(product, search),
+      );
     const from = (page - 1) * PAGE_SIZE;
     return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
   }
 
   const products = await fetchAllProducts(cat === "all" ? undefined : cat);
   const all = products.filter(
-    (product) => product.current_stock > 0 && matchesSearch(product, search),
+    (product) =>
+      product.current_stock > 0 && isStorefrontProduct(product) && matchesSearch(product, search),
   );
   const from = (page - 1) * PAGE_SIZE;
   return { items: all.slice(from, from + PAGE_SIZE), total: all.length };

@@ -11,6 +11,7 @@ import { getEcommerceProduct } from "@/integrations/inventario/ecommerce-api";
 import { getCartItemKey } from "@/lib/cart-item";
 import { calculateDecantPrice, getBottleVolumeMl } from "@/lib/perfume-decants";
 import { getPromotionPrice } from "@/lib/promotion";
+import { isStorefrontProduct } from "@/lib/storefront-product";
 
 export interface CartItem {
   id: string;
@@ -76,9 +77,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
           products.filter((product) => product !== null).map((product) => [product.id, product]),
         );
         setItems((current) =>
-          current.map((item) => {
+          current.flatMap((item) => {
             const product = latest.get(item.id);
             if (!product) return item;
+            if (!isStorefrontProduct(product)) return [];
             const promotion = getPromotionPrice(product);
             const bottleVolumeMl = getBottleVolumeMl(product.name, product.description);
             const price = item.sizeMl
@@ -87,13 +89,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const originalPrice = item.sizeMl
               ? calculateDecantPrice(promotion.originalPrice, bottleVolumeMl, item.sizeMl)
               : promotion.originalPrice;
-            return {
-              ...item,
-              price,
-              originalPrice: price < originalPrice ? originalPrice : undefined,
-              stock: product.current_stock,
-              imageUrl: product.image_url,
-            };
+            return [
+              {
+                ...item,
+                price,
+                originalPrice: price < originalPrice ? originalPrice : undefined,
+                stock: product.current_stock,
+                imageUrl: product.image_url,
+              },
+            ];
           }),
         );
       })
