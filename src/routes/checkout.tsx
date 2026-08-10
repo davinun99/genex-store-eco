@@ -8,7 +8,7 @@ import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
 import { getCartItemKey } from "@/lib/cart-item";
 import { BANK_ACCOUNTS, QUICK_ALIAS, STORE } from "@/lib/store-config";
-import { supabase } from "@/integrations/supabase/client";
+import { createEcommerceOrder, uploadOrderReceipt } from "@/integrations/inventario/ecommerce-api";
 import { ArrowLeft, Building2, Copy, Upload, CheckCircle2, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
@@ -54,8 +54,8 @@ function Checkout() {
       setErrorMsg("Adjunta el comprobante de transferencia.");
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setErrorMsg("El comprobante no puede superar 8 MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg("El comprobante no puede superar 5 MB.");
       return;
     }
 
@@ -76,14 +76,10 @@ function Checkout() {
     setSubmitting(true);
     let orderFallbackUrl: string | null = null;
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const uploadRes = await supabase.storage.from("comprobantes").upload(path, file, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false,
+      const receiptPath = await uploadOrderReceipt(file).catch((error: unknown) => {
+        const detail = error instanceof Error ? error.message : "";
+        throw new Error(`No pudimos subir el comprobante: ${detail}`);
       });
-      if (uploadRes.error)
-        throw new Error("No pudimos subir el comprobante: " + uploadRes.error.message);
 
       orderFallbackUrl = `https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(
         `Hola! Tuve un problema al registrar mi pedido en ${STORE.name}, pero el comprobante se subió correctamente.\n\n` +
@@ -96,31 +92,24 @@ function Checkout() {
           "Voy a adjuntar nuevamente el comprobante en este chat.",
       )}`;
 
-      const { data: order, error: orderErr } = await supabase
-        .from("orders")
-        .insert({
-          customer_name: parsed.data.name,
-          customer_email: parsed.data.email,
-          customer_phone: parsed.data.phone,
-          customer_address: parsed.data.address ?? null,
-          customer_notes: parsed.data.notes ?? null,
-          payment_method: parsed.data.paymentMethod,
-          total_amount: totalAmount,
-          receipt_url: uploadRes.data.path,
-          items: items.map((i) => ({
-            id: i.id,
-            sku: i.sku,
-            name: i.name,
-            ...(i.sizeMl ? { presentation_ml: i.sizeMl } : {}),
-            quantity: i.quantity,
-            unit_price: i.price,
-            subtotal: i.price * i.quantity,
-          })),
-        })
-        .select("order_number")
-        .single();
-      if (orderErr || !order)
-        throw new Error("No pudimos registrar el pedido: " + (orderErr?.message ?? ""));
+      const order = await createEcommerceOrder({
+        customer_name: parsed.data.name,
+        customer_email: parsed.data.email,
+        customer_phone: parsed.data.phone,
+        customer_address: parsed.data.address ?? null,
+        customer_notes: parsed.data.notes ?? null,
+        payment_method: parsed.data.paymentMethod,
+        receipt_path: receiptPath,
+        idempotency_key: crypto.randomUUID(),
+        items: items.map((i) => ({
+          product_id: i.id,
+          ...(i.sizeMl ? { presentation_ml: i.sizeMl } : {}),
+          quantity: i.quantity,
+        })),
+      }).catch((error: unknown) => {
+        const detail = error instanceof Error ? error.message : "";
+        throw new Error(`No pudimos registrar el pedido: ${detail}`);
+      });
 
       clear();
       navigate({ to: "/gracias/$orderNumber", params: { orderNumber: order.order_number } });
@@ -289,7 +278,7 @@ function Checkout() {
               <section className="rounded-2xl border border-border bg-[var(--color-surface)] p-6">
                 <h2 className="font-display text-lg font-bold">3. Adjunta el comprobante</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Subi la captura o PDF de la transferencia (hasta 8 MB).
+                  Subi la captura o PDF de la transferencia (hasta 5 MB).
                 </p>
                 <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-8 text-center transition hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-strong)]">
                   <Upload className="size-6 text-muted-foreground" />
