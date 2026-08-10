@@ -28,23 +28,58 @@ const PAGE_SIZE = 12;
 const OTROS_IDS = ["684e85ce-139e-4272-8251-b08150768e3a", "35995509-7b9d-48e8-a00d-6d63bbd02fd4"];
 const OTROS_PRIMARY_ID = "684e85ce-139e-4272-8251-b08150768e3a";
 
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es");
+}
+
+function matchesSearch(product: InventarioProduct, search: string) {
+  const term = normalizeSearchText(search.trim());
+  if (!term) return true;
+
+  return [product.name, product.sku, product.description ?? ""].some((value) =>
+    normalizeSearchText(value).includes(term),
+  );
+}
+
 async function fetchProductsPage(cat: string, page: number, search: string) {
   if (OTROS_IDS.includes(cat)) {
     const results = await Promise.all(
-      OTROS_IDS.map((categoryId) =>
-        getEcommerceProducts({ categoryId, search, page: 1, limit: 500 }),
-      ),
+      OTROS_IDS.map((categoryId) => getEcommerceProducts({ categoryId, page: 1, limit: 500 })),
     );
-    const all = results.flatMap((result) => result.items);
+    const all = results
+      .flatMap((result) => result.items)
+      .filter((product) => product.current_stock > 0 && matchesSearch(product, search));
     const from = (page - 1) * PAGE_SIZE;
     return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
   }
-  return getEcommerceProducts({
+
+  if (search.trim()) {
+    const result = await getEcommerceProducts({
+      categoryId: cat === "all" ? undefined : cat,
+      page: 1,
+      limit: 500,
+    });
+    const all = result.items.filter(
+      (product) => product.current_stock > 0 && matchesSearch(product, search),
+    );
+    const from = (page - 1) * PAGE_SIZE;
+    return { items: all.slice(from, from + PAGE_SIZE), total: all.length };
+  }
+
+  const result = await getEcommerceProducts({
     categoryId: cat === "all" ? undefined : cat,
-    search,
     page,
     limit: PAGE_SIZE,
   });
+  const items = result.items.filter((product) => product.current_stock > 0);
+
+  return {
+    items,
+    total: Math.max(0, result.total - (result.items.length - items.length)),
+  };
 }
 
 const searchSchema = z.object({

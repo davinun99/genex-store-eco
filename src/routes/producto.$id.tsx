@@ -18,7 +18,8 @@ import {
 } from "@/lib/perfume-decants";
 
 async function fetchProduct(id: string): Promise<InventarioProduct | null> {
-  return getEcommerceProduct(id);
+  const product = await getEcommerceProduct(id);
+  return product && product.current_stock > 0 ? product : null;
 }
 
 export const Route = createFileRoute("/producto/$id")({
