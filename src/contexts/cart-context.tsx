@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { inventario } from "@/integrations/inventario/client";
+import { getEcommerceProduct } from "@/integrations/inventario/ecommerce-api";
 import { getCartItemKey } from "@/lib/cart-item";
 
 export interface CartItem {
@@ -68,18 +68,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const missingIds = items.filter((item) => !item.imageUrl).map((item) => item.id);
     if (missingIds.length === 0) return;
 
-    void inventario
-      .from("products")
-      .select("id,image_url")
-      .in("id", missingIds)
-      .then(({ data }) => {
-        if (!data) return;
-        const images = new Map(data.map((product) => [product.id, product.image_url]));
+    void Promise.all(missingIds.map((id) => getEcommerceProduct(id)))
+      .then((products) => {
+        const images = new Map(
+          products
+            .filter((product) => product !== null)
+            .map((product) => [product.id, product.image_url]),
+        );
         setItems((current) =>
           current.map((item) =>
             images.has(item.id) ? { ...item, imageUrl: images.get(item.id) } : item,
           ),
         );
+      })
+      .catch(() => {
+        // Las imágenes son opcionales; el carrito sigue disponible si la actualización falla.
       });
   }, [hydrated, items]);
 
