@@ -9,7 +9,17 @@ import { formatGs } from "@/lib/format";
 import { getCartItemKey } from "@/lib/cart-item";
 import { BANK_ACCOUNTS, QUICK_ALIAS, STORE } from "@/lib/store-config";
 import { createEcommerceOrder, uploadOrderReceipt } from "@/integrations/inventario/ecommerce-api";
-import { ArrowLeft, Building2, Copy, Upload, CheckCircle2, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Copy,
+  Upload,
+  CheckCircle2,
+  MessageCircle,
+  MapPin,
+  Store as StoreIcon,
+  Truck,
+} from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -18,14 +28,25 @@ export const Route = createFileRoute("/checkout")({
   component: Checkout,
 });
 
-const checkoutSchema = z.object({
-  name: z.string().trim().min(2, "Ingresa tu nombre completo").max(120),
-  email: z.string().trim().email("Email invalido").max(160),
-  phone: z.string().trim().min(6, "Telefono invalido").max(40),
-  address: z.string().trim().max(300).optional(),
-  notes: z.string().trim().max(500).optional(),
-  paymentMethod: z.enum(["continental", "tufinancia", "alias-telefono", "alias-cedula"]),
-});
+const checkoutSchema = z
+  .object({
+    name: z.string().trim().min(2, "Ingresa tu nombre completo").max(120),
+    email: z.string().trim().email("Email invalido").max(160),
+    phone: z.string().trim().min(6, "Telefono invalido").max(40),
+    address: z.string().trim().max(300).optional(),
+    notes: z.string().trim().max(500).optional(),
+    fulfillmentMethod: z.enum(["pickup", "delivery"]),
+    paymentMethod: z.enum(["continental", "tufinancia", "alias-telefono", "alias-cedula"]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.fulfillmentMethod === "delivery" && (!data.address || data.address.length < 5)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["address"],
+        message: "Ingresa una direccion o referencia para el delivery",
+      });
+    }
+  });
 
 function Checkout() {
   const { items, totalAmount, clear } = useCart();
@@ -35,6 +56,7 @@ function Checkout() {
   const [whatsAppFallbackUrl, setWhatsAppFallbackUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<"pickup" | "delivery">("pickup");
 
   const copy = (v: string) => {
     navigator.clipboard?.writeText(v);
@@ -66,6 +88,7 @@ function Checkout() {
       phone: formData.get("phone"),
       address: formData.get("address") || undefined,
       notes: formData.get("notes") || undefined,
+      fulfillmentMethod: formData.get("fulfillmentMethod"),
       paymentMethod: formData.get("paymentMethod"),
     });
     if (!parsed.success) {
@@ -86,6 +109,7 @@ function Checkout() {
           `Nombre: ${parsed.data.name}\n` +
           `Teléfono: ${parsed.data.phone}\n` +
           `Email: ${parsed.data.email}\n` +
+          `Entrega: ${parsed.data.fulfillmentMethod === "delivery" ? "Delivery" : "Retiro en tienda"}\n` +
           (parsed.data.address ? `Dirección: ${parsed.data.address}\n` : "") +
           `Total: ${formatGs(totalAmount)}\n\n` +
           `Productos:\n${items.map((i) => `• ${i.quantity}x ${i.name}${i.sizeMl ? ` (${i.sizeMl} ml)` : ""}`).join("\n")}\n\n` +
@@ -96,8 +120,14 @@ function Checkout() {
         customer_name: parsed.data.name,
         customer_email: parsed.data.email,
         customer_phone: parsed.data.phone,
-        customer_address: parsed.data.address ?? null,
-        customer_notes: parsed.data.notes ?? null,
+        customer_address:
+          parsed.data.fulfillmentMethod === "delivery" ? (parsed.data.address ?? null) : null,
+        customer_notes: [
+          `Modalidad de entrega: ${parsed.data.fulfillmentMethod === "delivery" ? "Delivery" : "Retiro en tienda"}`,
+          parsed.data.notes,
+        ]
+          .filter(Boolean)
+          .join("\n"),
         payment_method: parsed.data.paymentMethod,
         receipt_path: receiptPath,
         idempotency_key: crypto.randomUUID(),
@@ -169,7 +199,68 @@ function Checkout() {
                   <Field label="Nombre completo *" name="name" required maxLength={120} />
                   <Field label="Email *" name="email" type="email" required maxLength={160} />
                   <Field label="Telefono / WhatsApp *" name="phone" required maxLength={40} />
-                  <Field label="Direccion (opcional)" name="address" maxLength={300} />
+                  <div className="sm:col-span-2">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Como queres recibir tu pedido? *
+                    </div>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition has-[:checked]:border-[var(--color-primary)] has-[:checked]:bg-[var(--color-surface-strong)]">
+                        <input
+                          type="radio"
+                          name="fulfillmentMethod"
+                          value="pickup"
+                          checked={fulfillmentMethod === "pickup"}
+                          onChange={() => setFulfillmentMethod("pickup")}
+                          className="mt-1 size-4 accent-[var(--color-primary)]"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2 font-semibold">
+                            <StoreIcon className="size-4" /> Retiro en tienda
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Coordinamos contigo cuando el pedido este listo.
+                          </p>
+                        </div>
+                      </label>
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition has-[:checked]:border-[var(--color-primary)] has-[:checked]:bg-[var(--color-surface-strong)]">
+                        <input
+                          type="radio"
+                          name="fulfillmentMethod"
+                          value="delivery"
+                          checked={fulfillmentMethod === "delivery"}
+                          onChange={() => setFulfillmentMethod("delivery")}
+                          className="mt-1 size-4 accent-[var(--color-primary)]"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2 font-semibold">
+                            <Truck className="size-4" /> Delivery
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            El costo se confirma segun tu ubicacion.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                  {fulfillmentMethod === "delivery" && (
+                    <div className="sm:col-span-2">
+                      <Field
+                        label="Direccion o referencia para el delivery *"
+                        name="address"
+                        required
+                        maxLength={300}
+                        placeholder="Barrio, calle, numero o referencia"
+                      />
+                      <div className="mt-3 flex gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 p-3 text-xs text-muted-foreground">
+                        <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--color-primary)]" />
+                        <p>
+                          Despues de confirmar el pedido, envianos tu ubicacion exacta por WhatsApp.
+                          El precio del delivery esta sujeto a la zona de entrega y se confirma
+                          antes del envio.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <div className="sm:col-span-2">
                     <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                       Notas (opcional)
