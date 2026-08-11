@@ -22,6 +22,13 @@ import {
   ChevronRight,
   LayoutGrid,
   MapPin,
+  Smartphone,
+  Watch,
+  SprayCan,
+  Monitor,
+  Camera,
+  Headphones,
+  Grid2X2,
 } from "lucide-react";
 
 const PAGE_SIZE = 12;
@@ -171,6 +178,9 @@ function Home() {
   const categories = categoriesQuery.data ?? [];
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name;
   const error = productsQuery.error || categoriesQuery.error;
+  const heroProducts = (loaderData.products.items as InventarioProduct[])
+    .filter((product) => Boolean(product.image_url?.trim()))
+    .slice(0, 3);
 
   const setCat = (newCat: string) =>
     navigate({
@@ -203,37 +213,41 @@ function Home() {
     <div className="min-h-screen bg-background">
       <Header onSearch={setSearchInput} searchValue={searchInput} />
 
-      <section className="border-b border-black bg-black text-white">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
-          <div className="max-w-4xl">
-            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ff6259]">
-              Promoción por tiempo limitado
-            </p>
-            <h1 className="font-display text-5xl font-bold leading-[0.92] tracking-[-0.065em] sm:text-7xl lg:text-8xl">
-              HASTA 30% OFF.
-              <br />
-              EN TODA LA TIENDA.
+      <section className="genex-hero overflow-hidden bg-black text-white">
+        <div className="mx-auto grid min-h-[495px] max-w-[1380px] items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-10">
+          <div className="relative z-10 max-w-2xl">
+            <h1 className="font-display text-5xl font-bold uppercase leading-[.98] tracking-[-0.055em] sm:text-6xl lg:text-[68px]">
+              Tecnología<br />
+              <span className="text-[#0868f4]">al mejor precio</span>
             </h1>
-            <p className="mt-7 max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">
-              Aprovechá precios especiales en productos seleccionados de todas nuestras categorías.
-              El descuento ya aparece aplicado.
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85 sm:text-xl">
+              Encontrá celulares, accesorios, perfumes, PC gamer<br className="hidden sm:block" /> y mucho más.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#catalogo"
-                className="inline-flex items-center gap-2 border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
+                className="inline-flex min-w-64 items-center justify-between rounded-md border border-white bg-white px-7 py-4 text-sm font-bold uppercase text-black transition hover:bg-[#0868f4] hover:text-white"
               >
-                Ver catálogo <ArrowRight className="size-4" />
-              </a>
-              <a
-                href={`https://wa.me/${STORE.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 border border-white/35 px-5 py-3 text-sm font-semibold transition hover:border-white"
-              >
-                <MessageCircle className="size-4" /> WhatsApp
+                Ver productos <ArrowRight className="size-5" />
               </a>
             </div>
+          </div>
+          <div className="relative hidden h-[420px] lg:block" aria-hidden="true">
+            <div className="absolute inset-8 rounded-full bg-[#0868f4]/10 blur-3xl" />
+            {heroProducts.map((product, index) => (
+              <img
+                key={product.id}
+                src={product.image_url!}
+                alt=""
+                className={`absolute object-contain drop-shadow-[0_28px_28px_rgba(0,0,0,.8)] ${
+                  index === 0
+                    ? "left-[20%] top-0 h-[90%] w-[58%]"
+                    : index === 1
+                      ? "bottom-[-2%] left-[-3%] h-[52%] w-[48%]"
+                      : "bottom-[-2%] right-[-4%] h-[58%] w-[48%]"
+                }`}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -253,7 +267,7 @@ function Home() {
       {/* Catalog */}
       <section
         id="catalogo"
-        className="mx-auto max-w-7xl scroll-mt-20 px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
+        className="mx-auto max-w-[1380px] scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
       >
         <div className="flex flex-wrap items-end justify-between gap-5 border-b border-black/10 pb-6">
           <div>
@@ -271,7 +285,7 @@ function Home() {
           </div>
           <a
             href="#categorias"
-            className="inline-flex items-center gap-2 border border-black bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition hover:bg-black hover:text-white"
+            className="inline-flex items-center gap-2 rounded-lg border border-black bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition hover:bg-black hover:text-white"
           >
             {cat === "all" ? "Explorar categorías" : "Cambiar categoría"}
             <ArrowRight className="size-3.5" />
@@ -325,7 +339,7 @@ function Home() {
       </section>
 
       <footer className="border-t border-white/10 bg-black py-14 text-white sm:py-16">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-2 md:items-end lg:px-8">
+        <div className="mx-auto grid max-w-[1380px] gap-10 px-4 sm:px-6 md:grid-cols-2 md:items-end lg:px-8">
           <div className="text-center md:text-left">
             <div className="font-display text-3xl font-bold tracking-[-0.06em] text-white">
               GENEX STORE
@@ -409,11 +423,40 @@ function CategoryShowcase({
   };
 
   return (
-    <section className="overflow-hidden border-b border-black bg-white py-12 sm:py-16">
-      <div className="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
+    <section className="overflow-hidden border-b border-black/10 bg-white py-7 sm:py-10">
+      <div className="mx-auto flex max-w-[1380px] flex-col px-4 sm:px-6 lg:px-8">
+        <div id="categorias" className="category-track order-0 -mx-4 flex scroll-mt-28 gap-2 overflow-x-auto px-4 pb-8 sm:-mx-6 sm:px-6 lg:-mx-8 lg:grid lg:grid-cols-8 lg:overflow-visible lg:px-8" aria-label="Categorías principales">
+          {[
+            { label: "Celulares", icon: Smartphone },
+            { label: "Accesorios", icon: Watch },
+            { label: "Perfumes", icon: SprayCan },
+            { label: "PC Gamer", icon: Monitor },
+            { label: "Cámaras", icon: Camera },
+            { label: "Audio", icon: Headphones },
+            { label: "Smartwatch", icon: Watch },
+          ].map(({ label, icon: Icon }) => {
+            const match = visibleCategories.find((category) =>
+              normalizeSearchText(category.name).includes(normalizeSearchText(label.replace("PC Gamer", "PC"))),
+            );
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onSelect(match?.id ?? "all")}
+                className="group flex min-w-28 flex-col items-center gap-3 rounded-xl px-3 py-3 text-center text-sm font-medium transition hover:bg-black/[0.035] hover:text-[#075ee8]"
+              >
+                <Icon className="size-8" strokeWidth={1.45} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+          <button type="button" onClick={() => onSelect("all")} className="group flex min-w-28 flex-col items-center gap-3 rounded-xl px-3 py-3 text-center text-sm font-medium transition hover:bg-black/[0.035] hover:text-[#075ee8]">
+            <Grid2X2 className="size-8" strokeWidth={1.45} />
+            <span>Más categorías</span>
+          </button>
+        </div>
         <div
-          id="categorias"
-          className="order-4 mb-7 mt-12 flex scroll-mt-20 items-end justify-between gap-4 border-t border-black/10 pt-10"
+          className="hidden"
         >
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
@@ -445,7 +488,7 @@ function CategoryShowcase({
 
         <div
           ref={trackRef}
-          className="category-track order-5 -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          className="hidden"
           aria-label="Categorías de productos"
         >
           {isLoading ? (
@@ -507,16 +550,13 @@ function CategoryShowcase({
             </>
           )}
         </div>
-        <p className="order-6 mt-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:hidden">
+        <p className="hidden">
           Deslizá para explorar
         </p>
 
-        <div className="order-1 mb-6 flex items-end justify-between gap-4">
+        <div id="destacados" className="order-1 mb-5 flex scroll-mt-28 items-end justify-between gap-4 border-t border-black/10 pt-7">
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-              Productos
-            </p>
-            <h3 className="font-display text-2xl font-bold uppercase tracking-[-0.04em] sm:text-3xl">
+            <h3 className="font-display text-2xl font-bold uppercase tracking-[-0.04em] sm:text-[28px]">
               {activeCategory === "all"
                 ? "Destacados"
                 : (categoryName(activeCategory) ?? "Destacados")}
@@ -526,7 +566,7 @@ function CategoryShowcase({
             <button
               type="button"
               onClick={() => scrollProducts(-1)}
-              className="grid size-10 place-items-center border border-black bg-white transition hover:bg-black hover:text-white"
+              className="grid size-9 place-items-center rounded-full border border-black/15 bg-white transition hover:border-black hover:bg-black hover:text-white"
               aria-label="Ver productos anteriores"
             >
               <ChevronLeft className="size-5" />
@@ -534,7 +574,7 @@ function CategoryShowcase({
             <button
               type="button"
               onClick={() => scrollProducts(1)}
-              className="grid size-10 place-items-center border border-black bg-black text-white transition hover:bg-white hover:text-black"
+              className="grid size-9 place-items-center rounded-full border border-black/15 bg-white transition hover:border-black hover:bg-black hover:text-white"
               aria-label="Ver productos siguientes"
             >
               <ChevronRight className="size-5" />
@@ -544,7 +584,7 @@ function CategoryShowcase({
 
         <div
           ref={productTrackRef}
-          className="category-track order-2 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          className="category-track order-2 -mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
           aria-label="Productos destacados"
         >
           {productsLoading ? (
@@ -555,7 +595,7 @@ function CategoryShowcase({
             products.map((product) => (
               <div
                 key={product.id}
-                className="w-[72vw] max-w-[270px] shrink-0 snap-start sm:w-[260px]"
+                className="w-[72vw] max-w-[280px] shrink-0 snap-start sm:w-[270px]"
               >
                 <ProductCard product={product} />
               </div>
@@ -567,7 +607,7 @@ function CategoryShowcase({
           )}
         </div>
 
-        <div className="order-3 mt-5 flex justify-end">
+        <div className="order-3 mt-5 hidden justify-end">
           <a
             href="#catalogo"
             className="inline-flex items-center gap-2 border-b border-black pb-1 text-xs font-semibold uppercase tracking-[0.14em]"

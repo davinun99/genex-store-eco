@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Search } from "lucide-react";
+import { ShoppingCart, Search, UserRound, Menu, ChevronDown } from "lucide-react";
 import { useCart } from "@/contexts/cart-context";
 import { STORE } from "@/lib/store-config";
 
@@ -12,46 +12,55 @@ export function Header({ onSearch, searchValue }: HeaderProps) {
   const { totalItems, setOpen } = useCart();
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur-md">
-      <div className="bg-[#ff3b30] px-4 py-2 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white sm:text-xs">
-        Hasta 30% OFF en toda la tienda · Por tiempo limitado
-      </div>
-      <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-[74px] max-w-[1380px] items-center gap-5 px-4 sm:px-6 lg:h-[108px] lg:px-8">
         <Link
           to="/"
-          className="relative block h-[42px] w-[130px] shrink-0 overflow-hidden transition-opacity hover:opacity-60"
+          className="relative block h-[46px] w-[142px] shrink-0 overflow-hidden transition-opacity hover:opacity-70 lg:h-[58px] lg:w-[190px]"
           aria-label={`${STORE.name}, inicio`}
         >
           <img
             src="/icons/genex_logo.jpeg"
             alt="Genex Store"
-            className="pointer-events-none absolute left-[-13px] top-[-64px] h-auto w-[154px] max-w-none select-none"
+            className="pointer-events-none absolute left-[-14px] top-[-66px] h-auto w-[165px] max-w-none select-none lg:left-[-18px] lg:top-[-88px] lg:w-[220px]"
           />
         </Link>
 
+        <nav className="mx-auto hidden items-center gap-10 text-[13px] font-semibold uppercase lg:flex" aria-label="Navegación principal">
+          <Link to="/" className="text-[#075ee8]">Inicio</Link>
+          <a href="/#catalogo" className="flex items-center gap-1.5 transition hover:text-[#075ee8]">Productos <ChevronDown className="size-3.5" /></a>
+          <a href="/#categorias" className="transition hover:text-[#075ee8]">Categorías</a>
+          <a href="/#destacados" className="transition hover:text-[#075ee8]">Novedades</a>
+          <a href={`https://wa.me/${STORE.whatsapp}`} target="_blank" rel="noreferrer" className="transition hover:text-[#075ee8]">Contacto</a>
+        </nav>
+
         {onSearch && (
-          <div className="relative ml-auto hidden max-w-md flex-1 md:block">
+          <div className="relative ml-auto hidden w-10 lg:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={searchValue ?? ""}
               onChange={(e) => onSearch(e.target.value)}
-              placeholder="Buscar productos..."
-              className="h-10 w-full rounded-none border-0 border-b border-black/20 bg-transparent pl-9 pr-4 text-sm outline-none transition placeholder:text-black/40 focus:border-black"
+              placeholder="Buscar"
+              aria-label="Buscar productos"
+              className="h-10 w-10 rounded-full border-0 bg-transparent pl-10 pr-0 text-sm outline-none transition-all placeholder:text-transparent focus:w-48 focus:bg-black/[0.035] focus:pr-4 focus:placeholder:text-black/40"
             />
           </div>
         )}
 
+        <span className="hidden text-black lg:block" aria-hidden="true"><UserRound className="size-6" strokeWidth={1.6} /></span>
+
         <button
           onClick={() => setOpen(true)}
-          className={`relative ml-auto inline-flex h-10 items-center gap-2 border border-black bg-black px-4 text-sm font-semibold text-white transition hover:bg-white hover:text-black ${onSearch ? "md:ml-0" : ""}`}
+          aria-label={`Abrir carrito, ${totalItems} productos`}
+          className="relative ml-auto inline-flex size-10 items-center justify-center bg-transparent text-black transition hover:text-[#075ee8] lg:ml-0"
         >
-          <ShoppingBag className="size-4" />
-          <span className="hidden sm:inline">Carrito</span>
+          <ShoppingCart className="size-6" strokeWidth={1.7} />
           {totalItems > 0 && (
-            <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1.5 text-[11px] font-bold text-black">
+            <span className="absolute right-0 top-0 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#075ee8] px-1 text-[10px] font-bold text-white">
               {totalItems}
             </span>
           )}
         </button>
+        <a href="#catalogo" className="grid size-10 place-items-center lg:hidden" aria-label="Abrir menú"><Menu className="size-6" /></a>
       </div>
     </header>
   );

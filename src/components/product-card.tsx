@@ -11,11 +11,11 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
   const promotion = getPromotionPrice(product);
 
   return (
-    <article className="group flex flex-col overflow-hidden border border-black/10 bg-white transition hover:border-black">
+    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-black/10 bg-white transition duration-300 hover:-translate-y-1 hover:border-black/25 hover:shadow-xl hover:shadow-black/5">
       <Link
         to="/producto/$id"
         params={{ id: product.id }}
-        className="relative flex aspect-square items-center justify-center bg-[#f4f4f2]"
+        className="relative flex aspect-square items-center justify-center bg-white"
       >
         {product.image_url ? (
           <img
@@ -34,7 +34,7 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
           </span>
         )}
         {promotion.isPromoted && !outOfStock && (
-          <span className="absolute left-3 top-3 bg-[#ff3b30] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-[#075ee8] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
             {promotion.discountPercent}% OFF
           </span>
         )}
@@ -56,7 +56,7 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
                 {formatGs(promotion.originalPrice)}
               </div>
             )}
-            <div className="font-display text-lg font-bold text-[#d21f18]">
+            <div className="font-display text-lg font-bold text-black">
               {formatGs(promotion.price)}
             </div>
           </div>
@@ -74,7 +74,7 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
               });
               setOpen(true);
             }}
-            className="inline-flex h-9 items-center gap-1 border border-black bg-black px-3 text-xs font-semibold text-white transition hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-muted disabled:text-muted-foreground"
+            className="inline-flex h-9 items-center gap-1 rounded-lg border border-black bg-black px-3 text-xs font-semibold text-white transition hover:border-[#075ee8] hover:bg-[#075ee8] disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-muted disabled:text-muted-foreground"
           >
             <Plus className="size-3.5" /> Agregar
           </button>
