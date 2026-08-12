@@ -15,6 +15,7 @@ import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
 import { STORE } from "@/lib/store-config";
 import { isStorefrontProduct } from "@/lib/storefront-product";
+import { getPromotionPrice } from "@/lib/promotion";
 import {
   ArrowRight,
   MessageCircle,
@@ -28,6 +29,8 @@ const PAGE_SIZE = 12;
 
 const OTROS_IDS = ["684e85ce-139e-4272-8251-b08150768e3a", "35995509-7b9d-48e8-a00d-6d63bbd02fd4"];
 const OTROS_PRIMARY_ID = "684e85ce-139e-4272-8251-b08150768e3a";
+const FEATURED_CATEGORY_NAMES = ["perfume", "tecnologia"];
+const MAX_FEATURED_PRODUCTS = 15;
 
 function normalizeSearchText(value: string) {
   return value
@@ -43,6 +46,11 @@ function matchesSearch(product: InventarioProduct, search: string) {
   return [product.name, product.sku, product.description ?? ""].some((value) =>
     normalizeSearchText(value).includes(term),
   );
+}
+
+function isFeaturedCategory(category: InventarioCategory) {
+  const name = normalizeSearchText(category.name);
+  return FEATURED_CATEGORY_NAMES.some((featuredName) => name.includes(featuredName));
 }
 
 async function fetchAllProducts(categoryId?: string) {
@@ -166,9 +174,33 @@ function Home() {
     },
   });
 
+  const categories = categoriesQuery.data ?? [];
+  const featuredCategoryIds = categories.filter(isFeaturedCategory).map((category) => category.id);
+  const featuredProductsQuery = useQuery({
+    queryKey: ["featured-products-by-discount", featuredCategoryIds],
+    enabled: featuredCategoryIds.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const results = await Promise.all(featuredCategoryIds.map(fetchAllProducts));
+      return results
+        .flat()
+        .filter(
+          (product) =>
+            product.current_stock > 0 &&
+            isStorefrontProduct(product) &&
+            Boolean(product.image_url?.trim()) &&
+            getPromotionPrice(product).isPromoted,
+        )
+        .sort(
+          (first, second) =>
+            getPromotionPrice(second).discountPercent - getPromotionPrice(first).discountPercent,
+        )
+        .slice(0, MAX_FEATURED_PRODUCTS);
+    },
+  });
+
   const total = productsQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const categories = categoriesQuery.data ?? [];
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name;
   const error = productsQuery.error || categoriesQuery.error;
 
@@ -243,11 +275,8 @@ function Home() {
         isLoading={categoriesQuery.isLoading}
         activeCategory={cat}
         onSelect={selectShowcaseCategory}
-        products={(productsQuery.data?.items ?? []).filter((product) =>
-          Boolean(product.image_url?.trim()),
-        )}
-        productsLoading={productsQuery.isLoading}
-        categoryName={categoryName}
+        products={featuredProductsQuery.data ?? []}
+        productsLoading={categoriesQuery.isLoading || featuredProductsQuery.isLoading}
       />
 
       {/* Catalog */}
@@ -380,7 +409,6 @@ function CategoryShowcase({
   onSelect,
   products,
   productsLoading,
-  categoryName,
 }: {
   categories: InventarioCategory[];
   isLoading: boolean;
@@ -388,7 +416,6 @@ function CategoryShowcase({
   onSelect: (category: string) => void;
   products: InventarioProduct[];
   productsLoading: boolean;
-  categoryName: (category: string) => string | undefined;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const productTrackRef = useRef<HTMLDivElement>(null);
@@ -517,9 +544,7 @@ function CategoryShowcase({
               Productos
             </p>
             <h3 className="font-display text-2xl font-bold uppercase tracking-[-0.04em] sm:text-3xl">
-              {activeCategory === "all"
-                ? "Destacados"
-                : (categoryName(activeCategory) ?? "Destacados")}
+              Destacados
             </h3>
           </div>
           <div className="flex gap-2">
