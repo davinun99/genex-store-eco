@@ -49,14 +49,14 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
           {product.name}
         </Link>
         <div className="text-xs text-muted-foreground">Stock {product.current_stock}</div>
-        <div className="mt-auto flex items-center justify-between pt-3">
-          <div>
+        <div className="mt-auto flex flex-col gap-3 pt-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
             {promotion.isPromoted && (
-              <div className="text-xs text-muted-foreground line-through">
+              <div className="whitespace-nowrap text-xs text-muted-foreground line-through">
                 {formatGs(promotion.originalPrice)}
               </div>
             )}
-            <div className="font-display text-lg font-bold text-[#d21f18]">
+            <div className="whitespace-nowrap font-display text-lg font-bold text-[#d21f18]">
               {formatGs(promotion.price)}
             </div>
           </div>
@@ -74,7 +74,7 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
               });
               setOpen(true);
             }}
-            className="inline-flex h-9 items-center gap-1 border border-black bg-black px-3 text-xs font-semibold text-white transition hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-muted disabled:text-muted-foreground"
+            className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-1 border border-black bg-black px-3 text-xs font-semibold text-white transition hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:border-black/10 disabled:bg-muted disabled:text-muted-foreground lg:w-auto"
           >
             <Plus className="size-3.5" /> Agregar
           </button>
