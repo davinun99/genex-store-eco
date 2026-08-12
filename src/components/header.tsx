@@ -18,13 +18,15 @@ export function Header({ onSearch, searchValue }: HeaderProps) {
       <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           to="/"
-          className="relative block h-[42px] w-[130px] shrink-0 overflow-hidden transition-opacity hover:opacity-60"
+          className="flex h-[42px] w-[130px] shrink-0 items-center transition-opacity hover:opacity-60"
           aria-label={`${STORE.name}, inicio`}
         >
           <img
-            src="/icons/genex_logo.jpeg"
+            src="/icons/genex_logo.svg"
             alt="Genex Store"
-            className="pointer-events-none absolute left-[-13px] top-[-64px] h-auto w-[154px] max-w-none select-none"
+            width="130"
+            height="42"
+            className="pointer-events-none h-auto w-full select-none"
           />
         </Link>
 
