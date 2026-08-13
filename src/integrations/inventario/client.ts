@@ -1,10 +1,9 @@
-// Cliente Supabase para LEER productos/categorias del proyecto Inventario Amigo.
+// Cliente Supabase para LEER productos/categorías del proyecto Inventario Amigo.
 // Solo lectura. Las escrituras (pedidos, comprobantes) viven en el backend propio.
 import { createClient } from "@supabase/supabase-js";
 
 const INVENTARIO_URL =
-  import.meta.env.VITE_INVENTARIO_SUPABASE_URL ||
-  process.env.VITE_INVENTARIO_SUPABASE_URL;
+  import.meta.env.VITE_INVENTARIO_SUPABASE_URL || process.env.VITE_INVENTARIO_SUPABASE_URL;
 const INVENTARIO_KEY =
   import.meta.env.VITE_INVENTARIO_SUPABASE_PUBLISHABLE_KEY ||
   process.env.VITE_INVENTARIO_SUPABASE_PUBLISHABLE_KEY;

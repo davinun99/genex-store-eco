@@ -33,7 +33,7 @@ export const BANK_ACCOUNTS: BankAccount[] = [
     document: "CI 5.527.537",
   },
   {
-    entity: "Tu Financia",
+    entity: "Tu Financiera",
     type: "Cuenta bancaria",
     number: "2034889201",
     holder: "Pablo Manuel Nuñez Benitez",
@@ -42,6 +42,6 @@ export const BANK_ACCOUNTS: BankAccount[] = [
 ];
 
 export const QUICK_ALIAS = [
-  { label: "Alias por telefono", value: "0984 849 454" },
-  { label: "Alias por cedula", value: "5527537" },
+  { label: "Alias por teléfono", value: "0984 849 454" },
+  { label: "Alias por cédula", value: "5527537" },
 ];

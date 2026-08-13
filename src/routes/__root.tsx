@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: `${STORE.name} — ${STORE.tagline}` },
       {
         name: "description",
-        content: `${STORE.name}: tienda online con pago por transferencia bancaria y envio de comprobante.`,
+        content: `${STORE.name}: tienda online con pago por transferencia bancaria y envío de comprobante.`,
       },
       { property: "og:title", content: STORE.name },
       { property: "og:description", content: STORE.tagline },
@@ -86,9 +86,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Genex Store" },
       { property: "og:title", content: "Genex Store" },
       { name: "twitter:title", content: "Genex Store" },
-      { name: "description", content: "Tu tienda de accesorios y tecnologia" },
-      { property: "og:description", content: "Tu tienda de accesorios y tecnologia" },
-      { name: "twitter:description", content: "Tu tienda de accesorios y tecnologia" },
+      { name: "description", content: "Tu tienda de accesorios y tecnología" },
+      { property: "og:description", content: "Tu tienda de accesorios y tecnología" },
+      { name: "twitter:description", content: "Tu tienda de accesorios y tecnología" },
       {
         property: "og:image",
         content:

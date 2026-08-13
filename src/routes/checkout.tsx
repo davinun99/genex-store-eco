@@ -30,9 +30,9 @@ export const Route = createFileRoute("/checkout")({
 
 const checkoutSchema = z
   .object({
-    name: z.string().trim().min(2, "Ingresa tu nombre completo").max(120),
-    email: z.string().trim().email("Email invalido").max(160),
-    phone: z.string().trim().min(6, "Telefono invalido").max(40),
+    name: z.string().trim().min(2, "Ingresá tu nombre completo").max(120),
+    email: z.string().trim().email("Correo electrónico inválido").max(160),
+    phone: z.string().trim().min(6, "Teléfono inválido").max(40),
     address: z.string().trim().max(300).optional(),
     notes: z.string().trim().max(500).optional(),
     fulfillmentMethod: z.enum(["pickup", "delivery"]),
@@ -43,7 +43,7 @@ const checkoutSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["address"],
-        message: "Ingresa una direccion o referencia para el delivery",
+        message: "Ingresá una dirección o referencia para el delivery",
       });
     }
   });
@@ -69,11 +69,11 @@ function Checkout() {
     setErrorMsg(null);
     setWhatsAppFallbackUrl(null);
     if (items.length === 0) {
-      setErrorMsg("Tu carrito esta vacio.");
+      setErrorMsg("Tu carrito está vacío.");
       return;
     }
     if (!file) {
-      setErrorMsg("Adjunta el comprobante de transferencia.");
+      setErrorMsg("Adjuntá el comprobante de transferencia.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -92,7 +92,7 @@ function Checkout() {
       paymentMethod: formData.get("paymentMethod"),
     });
     if (!parsed.success) {
-      setErrorMsg(parsed.error.issues[0]?.message ?? "Revisa los datos del formulario.");
+      setErrorMsg(parsed.error.issues[0]?.message ?? "Revisá los datos del formulario.");
       return;
     }
 
@@ -105,10 +105,10 @@ function Checkout() {
       });
 
       orderFallbackUrl = `https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(
-        `Hola! Tuve un problema al registrar mi pedido en ${STORE.name}, pero el comprobante se subió correctamente.\n\n` +
+        `¡Hola! Tuve un problema al registrar mi pedido en ${STORE.name}, pero el comprobante se subió correctamente.\n\n` +
           `Nombre: ${parsed.data.name}\n` +
           `Teléfono: ${parsed.data.phone}\n` +
-          `Email: ${parsed.data.email}\n` +
+          `Correo electrónico: ${parsed.data.email}\n` +
           `Entrega: ${parsed.data.fulfillmentMethod === "delivery" ? "Delivery" : "Retiro en tienda"}\n` +
           (parsed.data.address ? `Dirección: ${parsed.data.address}\n` : "") +
           `Total: ${formatGs(totalAmount)}\n\n` +
@@ -175,17 +175,17 @@ function Checkout() {
         </Link>
         <h1 className="font-display text-3xl font-bold sm:text-4xl">Finalizar pedido</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Transfieri al banco, adjunta el comprobante y nosotros confirmamos.
+          Transferí el importe, adjuntá el comprobante y nosotros confirmamos.
         </p>
 
         {items.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-border bg-[var(--color-surface)] p-10 text-center">
-            <p className="text-sm text-muted-foreground">Tu carrito esta vacio.</p>
+            <p className="text-sm text-muted-foreground">Tu carrito está vacío.</p>
             <Link
               to="/"
               className="mt-4 inline-flex rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)]"
             >
-              Ver catalogo
+              Ver catálogo
             </Link>
           </div>
         ) : (
@@ -197,11 +197,17 @@ function Checkout() {
                 <h2 className="font-display text-lg font-bold">1. Tus datos</h2>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <Field label="Nombre completo *" name="name" required maxLength={120} />
-                  <Field label="Email *" name="email" type="email" required maxLength={160} />
-                  <Field label="Telefono / WhatsApp *" name="phone" required maxLength={40} />
+                  <Field
+                    label="Correo electrónico *"
+                    name="email"
+                    type="email"
+                    required
+                    maxLength={160}
+                  />
+                  <Field label="Teléfono / WhatsApp *" name="phone" required maxLength={40} />
                   <div className="sm:col-span-2">
                     <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Como queres recibir tu pedido? *
+                      ¿Cómo querés recibir tu pedido? *
                     </div>
                     <div className="mt-2 grid gap-3 sm:grid-cols-2">
                       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition has-[:checked]:border-[var(--color-primary)] has-[:checked]:bg-[var(--color-surface-strong)]">
@@ -218,7 +224,7 @@ function Checkout() {
                             <StoreIcon className="size-4" /> Retiro en tienda
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            Coordinamos contigo cuando el pedido este listo.
+                            Coordinamos con vos cuando el pedido esté listo.
                           </p>
                         </div>
                       </label>
@@ -236,7 +242,7 @@ function Checkout() {
                             <Truck className="size-4" /> Delivery
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            El costo se confirma segun tu ubicacion.
+                            El costo se confirma según tu ubicación.
                           </p>
                         </div>
                       </label>
@@ -245,18 +251,18 @@ function Checkout() {
                   {fulfillmentMethod === "delivery" && (
                     <div className="sm:col-span-2">
                       <Field
-                        label="Direccion o referencia para el delivery *"
+                        label="Dirección o referencia para el delivery *"
                         name="address"
                         required
                         maxLength={300}
-                        placeholder="Barrio, calle, numero o referencia"
+                        placeholder="Barrio, calle, número o referencia"
                       />
                       <div className="mt-3 flex gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 p-3 text-xs text-muted-foreground">
                         <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--color-primary)]" />
                         <p>
-                          Despues de confirmar el pedido, envianos tu ubicacion exacta por WhatsApp.
-                          El precio del delivery esta sujeto a la zona de entrega y se confirma
-                          antes del envio.
+                          Después de confirmar el pedido, mandanos tu ubicación exacta por WhatsApp.
+                          El precio del delivery está sujeto a la zona de entrega y se confirma
+                          antes del envío.
                         </p>
                       </div>
                     </div>
@@ -272,7 +278,7 @@ function Checkout() {
 
               {/* Pago */}
               <section className="rounded-2xl border border-border bg-[var(--color-surface)] p-6">
-                <h2 className="font-display text-lg font-bold">2. Elegi a donde transferir</h2>
+                <h2 className="font-display text-lg font-bold">2. Elegí dónde transferir</h2>
                 <div className="mt-4 space-y-3">
                   {BANK_ACCOUNTS.map((acc, idx) => {
                     const id = idx === 0 ? "continental" : "tufinancia";
@@ -324,7 +330,7 @@ function Checkout() {
 
                   <div className="rounded-xl border border-dashed border-border p-4">
                     <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Cuentas rapidas (Alias)
+                      Cuentas rápidas (alias)
                     </div>
                     <div className="mt-2 grid gap-3 sm:grid-cols-2">
                       {QUICK_ALIAS.map((a, idx) => {
@@ -370,9 +376,9 @@ function Checkout() {
 
               {/* Comprobante */}
               <section className="rounded-2xl border border-border bg-[var(--color-surface)] p-6">
-                <h2 className="font-display text-lg font-bold">3. Adjunta el comprobante</h2>
+                <h2 className="font-display text-lg font-bold">3. Adjuntá el comprobante</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Subi la captura o PDF de la transferencia (hasta 5 MB).
+                  Subí la captura o el PDF de la transferencia (hasta 5 MB).
                 </p>
                 <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-8 text-center transition hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-strong)]">
                   <Upload className="size-6 text-muted-foreground" />
@@ -380,7 +386,7 @@ function Checkout() {
                     <div className="text-sm">
                       <div className="font-semibold">{file.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {(file.size / 1024).toFixed(1)} KB · Hace clic para cambiar
+                        {(file.size / 1024).toFixed(1)} KB · Hacé clic para cambiar
                       </div>
                     </div>
                   ) : (
@@ -463,7 +469,7 @@ function Checkout() {
                 </button>
                 <a
                   href={`https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(
-                    `Hola! Quiero hacer un pedido en ${STORE.name} por ${formatGs(totalAmount)}:\n` +
+                    `¡Hola! Quiero hacer un pedido en ${STORE.name} por ${formatGs(totalAmount)}:\n` +
                       items
                         .map(
                           (i) => `• ${i.quantity}x ${i.name}${i.sizeMl ? ` (${i.sizeMl} ml)` : ""}`,

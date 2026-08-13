@@ -122,7 +122,7 @@ export const Route = createFileRoute("/")({
       { title: `${STORE.name} — Comprar online en Paraguay` },
       {
         name: "description",
-        content: `Catalogo de ${STORE.name}: accesorios, vidrios, perfumes y mas. Pedidos online con pago por transferencia.`,
+        content: `Catálogo de ${STORE.name}: accesorios, vidrios, perfumes y más. Pedidos online con pago por transferencia.`,
       },
       { property: "og:title", content: STORE.name },
       { property: "og:description", content: STORE.tagline },
@@ -294,8 +294,8 @@ function Home() {
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {productsQuery.isLoading
-                ? "Cargando productos..."
-                : `${total} producto(s) con stock · página ${page} de ${totalPages}`}
+                ? "Cargando productos…"
+                : `${total} ${total === 1 ? "producto" : "productos"} con stock · página ${page} de ${totalPages}`}
             </p>
           </div>
           <a
@@ -312,7 +312,7 @@ function Home() {
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Buscar productos..."
+            placeholder="Buscar productos…"
             className="h-11 w-full border-0 border-b border-black/20 bg-white px-1 text-sm outline-none focus:border-black"
           />
         </div>
@@ -334,7 +334,7 @@ function Home() {
           <StoreLoader message="Cargando productos" />
         ) : (productsQuery.data?.items.length ?? 0) === 0 ? (
           <div className="mt-6 rounded-2xl border border-border bg-[var(--color-surface)] p-10 text-center text-sm text-muted-foreground">
-            No encontramos productos para tu busqueda.
+            No encontramos productos para tu búsqueda.
           </div>
         ) : (
           <>
@@ -626,7 +626,7 @@ function Pagination({
   }
 
   return (
-    <nav className="mt-8 flex items-center justify-center gap-1.5" aria-label="Paginacion">
+    <nav className="mt-8 flex items-center justify-center gap-1.5" aria-label="Paginación">
       <button
         onClick={() => onChange(Math.max(1, page - 1))}
         disabled={page === 1}
