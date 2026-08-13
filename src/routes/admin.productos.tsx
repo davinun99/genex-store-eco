@@ -463,11 +463,17 @@ function ProductImageManager({ email }: { email: string }) {
 
   const products = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
-    if (!term) return productsQuery.data ?? [];
-    return (productsQuery.data ?? []).filter(
-      (product) =>
-        product.name.toLocaleLowerCase().includes(term) ||
-        product.sku.toLocaleLowerCase().includes(term),
+    const filtered = term
+      ? (productsQuery.data ?? []).filter(
+          (product) =>
+            product.name.toLocaleLowerCase().includes(term) ||
+            product.sku.toLocaleLowerCase().includes(term),
+        )
+      : (productsQuery.data ?? []);
+
+    return [...filtered].sort(
+      (first, second) =>
+        Number(Boolean(first.image_url?.trim())) - Number(Boolean(second.image_url?.trim())),
     );
   }, [productsQuery.data, search]);
 
