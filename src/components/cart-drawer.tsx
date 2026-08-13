@@ -30,7 +30,7 @@ export function CartDrawer() {
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-muted-foreground">
             <ShoppingBag className="size-10" />
-            <p className="text-sm">Todavia no agregaste productos.</p>
+            <p className="text-sm">Todavía no agregaste productos.</p>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -118,7 +118,9 @@ export function CartDrawer() {
         {items.length > 0 && (
           <div className="border-t border-border px-5 py-4">
             <div className="flex items-center justify-between pb-3 text-sm">
-              <span className="text-muted-foreground">{totalItems} producto(s)</span>
+              <span className="text-muted-foreground">
+                {totalItems} {totalItems === 1 ? "producto" : "productos"}
+              </span>
               <span className="font-display text-xl font-bold">{formatGs(totalAmount)}</span>
             </div>
             <p className="pb-3 text-center text-xs font-semibold text-[#d21f18]">

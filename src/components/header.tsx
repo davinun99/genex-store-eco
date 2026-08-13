@@ -36,7 +36,7 @@ export function Header({ onSearch, searchValue }: HeaderProps) {
             <input
               value={searchValue ?? ""}
               onChange={(e) => onSearch(e.target.value)}
-              placeholder="Buscar productos..."
+              placeholder="Buscar productos…"
               className="h-10 w-full rounded-none border-0 border-b border-black/20 bg-transparent pl-9 pr-4 text-sm outline-none transition placeholder:text-black/40 focus:border-black"
             />
           </div>

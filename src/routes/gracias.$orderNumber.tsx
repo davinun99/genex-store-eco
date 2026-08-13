@@ -18,11 +18,12 @@ function ThankYou() {
         </div>
         <h1 className="mt-6 font-display text-3xl font-bold sm:text-4xl">Recibimos tu pedido</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Numero de pedido: <span className="font-mono font-semibold text-foreground">#{orderNumber}</span>
+          Número de pedido:{" "}
+          <span className="font-mono font-semibold text-foreground">#{orderNumber}</span>
         </p>
         <p className="mx-auto mt-6 max-w-md text-sm text-muted-foreground">
-          Vamos a verificar el comprobante y nos comunicamos por WhatsApp o email para coordinar la entrega.
-          Guarda este numero para referencia.
+          Vamos a verificar el comprobante y nos comunicaremos por WhatsApp o correo electrónico
+          para coordinar la entrega. Guardá este número como referencia.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
@@ -32,7 +33,7 @@ function ThankYou() {
             <Home className="size-4" /> Volver al inicio
           </Link>
           <a
-            href={`https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(`Hola! Acabo de hacer el pedido #${orderNumber} en ${STORE.name}.`)}`}
+            href={`https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(`¡Hola! Acabo de hacer el pedido #${orderNumber} en ${STORE.name}.`)}`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-semibold transition hover:bg-[var(--color-surface-strong)]"
