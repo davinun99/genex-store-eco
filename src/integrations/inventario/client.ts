@@ -25,6 +25,10 @@ export interface InventarioProduct {
   min_stock: number;
   purchase_price: number;
   sale_price: number;
+  discount_percent?: number | null;
+  original_unit_price?: number;
+  final_price?: number;
+  unit_price?: number;
   is_active: boolean;
   category_id: string;
   created_at: string;

@@ -232,7 +232,7 @@ function ProductPage() {
                       {formatGs(selectedOriginalPrice)}
                     </div>
                     <span className="mb-1 bg-[#ff3b30] px-2 py-1 text-xs font-bold text-white">
-                      {promotion.discountPercent}% OFF
+                      {promotion.discountPercent.toFixed(0)}% OFF
                     </span>
                   </>
                 )}
