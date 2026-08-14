@@ -35,7 +35,7 @@ export function ProductCard({ product }: { product: InventarioProduct }) {
         )}
         {promotion.isPromoted && !outOfStock && (
           <span className="absolute left-3 top-3 bg-[#ff3b30] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
-            {promotion.discountPercent}% OFF
+            {promotion.discountPercent.toFixed(0)}% OFF
           </span>
         )}
       </Link>

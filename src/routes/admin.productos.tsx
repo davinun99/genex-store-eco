@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   PackageCheck,
+  Percent,
   Search,
   Trash2,
   Upload,
@@ -33,7 +34,13 @@ type AdminProduct = {
   image_url: string | null;
 };
 
-type AdminSection = "orders" | "images";
+type AdminDiscountProduct = AdminProduct & {
+  purchase_price: number;
+  sale_price: number;
+  discount_percent: number | null;
+};
+
+type AdminSection = "orders" | "discounts" | "images";
 
 export const Route = createFileRoute("/admin/productos")({
   component: AdminProductsPage,
@@ -150,13 +157,20 @@ function AdminPanel({ session }: { session: Session }) {
     access?.permissions.includes("products.images.manage") ||
     access?.sections.some((value) => /imagen|image|foto|product/i.test(value)),
   );
+  const canManageDiscounts = Boolean(
+    access?.roles.some((role) => ["admin", "ecommerce_manager"].includes(role)) ||
+    access?.permissions.some((value) => /product.*(price|discount|update)/i.test(value)) ||
+    access?.sections.some((value) => /precio|descuento|discount/i.test(value)),
+  );
 
   useEffect(() => {
-    if (access && !canManageOrders && canManageImages) setSection("images");
-  }, [access, canManageImages, canManageOrders]);
+    if (!access || canManageOrders) return;
+    if (canManageDiscounts) setSection("discounts");
+    else if (canManageImages) setSection("images");
+  }, [access, canManageDiscounts, canManageImages, canManageOrders]);
 
   if (permissionsQuery.isLoading) return <CenteredMessage message="Cargando permisos…" />;
-  if (permissionsQuery.error || (!canManageOrders && !canManageImages)) {
+  if (permissionsQuery.error || (!canManageOrders && !canManageDiscounts && !canManageImages)) {
     return (
       <CenteredMessage message="Tu usuario no tiene permisos para acceder al panel del e-commerce." />
     );
@@ -201,9 +215,19 @@ function AdminPanel({ session }: { session: Session }) {
               label="Cargar fotos"
             />
           )}
+          {canManageDiscounts && (
+            <AdminNavButton
+              active={section === "discounts"}
+              onClick={() => setSection("discounts")}
+              icon={<Percent className="size-4" />}
+              label="Descuentos"
+            />
+          )}
         </nav>
         {section === "orders" && canManageOrders ? (
           <OrdersDashboard session={session} />
+        ) : section === "discounts" && canManageDiscounts ? (
+          <ProductDiscountManager />
         ) : (
           <ProductImageManager email={session.user.email ?? "Admin"} />
         )}
@@ -344,18 +368,47 @@ function OrdersDashboard({ session }: { session: Session }) {
                       Productos
                     </p>
                     <ul className="mt-2 space-y-1.5 text-sm">
-                      {items.map((item, index) => (
-                        <li key={index} className="flex justify-between gap-4">
-                          <span>
-                            {String(item.quantity ?? 1)}×{" "}
-                            {String(item.product_name ?? item.name ?? "Producto")}
-                            {item.presentation_ml ? ` · ${String(item.presentation_ml)} ml` : ""}
-                          </span>
-                          <span className="shrink-0 text-black/50">
-                            {formatGs(Number(item.subtotal ?? 0))}
-                          </span>
-                        </li>
-                      ))}
+                      {items.map((item, index) => {
+                        const quantity = Number(item.quantity ?? 1);
+                        const unitPrice = Number(item.unit_price);
+                        const originalUnitPrice = Number(item.original_unit_price);
+                        const hasFinalPrice = Number.isFinite(unitPrice) && unitPrice >= 0;
+                        const finalSubtotal = hasFinalPrice
+                          ? unitPrice * quantity
+                          : Number(item.subtotal ?? 0);
+                        const hasDiscount =
+                          hasFinalPrice &&
+                          Number.isFinite(originalUnitPrice) &&
+                          originalUnitPrice > unitPrice;
+
+                        return (
+                          <li key={index} className="flex justify-between gap-4">
+                            <span>
+                              {quantity}× {String(item.product_name ?? item.name ?? "Producto")}
+                              {item.presentation_ml ? ` · ${String(item.presentation_ml)} ml` : ""}
+                              {hasFinalPrice && (
+                                <span className="mt-0.5 block text-xs text-black/45">
+                                  {formatGs(unitPrice)} c/u
+                                </span>
+                              )}
+                            </span>
+                            <span className="shrink-0 text-right">
+                              {hasDiscount && (
+                                <span className="block text-xs text-black/40 line-through">
+                                  {formatGs(originalUnitPrice * quantity)}
+                                </span>
+                              )}
+                              <span
+                                className={
+                                  hasDiscount ? "font-semibold text-red-700" : "text-black/50"
+                                }
+                              >
+                                {formatGs(finalSubtotal)}
+                              </span>
+                            </span>
+                          </li>
+                        );
+                      })}
                     </ul>
                     <div className="mt-3 flex items-center justify-between border-t border-black/10 pt-3 text-sm font-bold">
                       <span>Total</span>
@@ -445,6 +498,255 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${style}`}>
       {status}
     </span>
+  );
+}
+
+const MAX_DISCOUNT_PERCENT = 30;
+const MIN_PROFIT_PERCENT = 10;
+const PRICE_ROUNDING = 1_000;
+
+function calculateDiscountProposal(product: AdminDiscountProduct) {
+  const salePrice = Number(product.sale_price);
+  const purchasePrice = Number(product.purchase_price);
+  if (!Number.isFinite(salePrice) || salePrice <= 0) return null;
+  if (!Number.isFinite(purchasePrice) || purchasePrice <= 0) return null;
+
+  const generalPromotionPrice =
+    Math.ceil((salePrice * (1 - MAX_DISCOUNT_PERCENT / 100)) / PRICE_ROUNDING) * PRICE_ROUNDING;
+  const minimumProfitablePrice =
+    Math.ceil((purchasePrice * (1 + MIN_PROFIT_PERCENT / 100)) / PRICE_ROUNDING) * PRICE_ROUNDING;
+  const finalPrice = Math.max(generalPromotionPrice, minimumProfitablePrice);
+  if (finalPrice >= salePrice) return null;
+
+  return {
+    finalPrice,
+    // La columna del backend conserva dos decimales; usamos la misma precisión
+    // para que una propuesta guardada no vuelva a aparecer como pendiente.
+    discountPercent: Math.round((1 - finalPrice / salePrice) * 10_000) / 100,
+  };
+}
+
+function ProductDiscountManager() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [notice, setNotice] = useState("");
+  const productsQuery = useQuery({
+    queryKey: ["admin-products-discounts"],
+    queryFn: async () => {
+      const { data, error } = await inventario
+        .from("products")
+        .select("id,name,sku,image_url,purchase_price,sale_price,discount_percent")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AdminDiscountProduct[];
+    },
+  });
+  const updateDiscount = useMutation({
+    mutationFn: async ({
+      product,
+      discountPercent,
+    }: {
+      product: AdminDiscountProduct;
+      discountPercent: number;
+    }) => {
+      const { error } = await inventario
+        .from("products")
+        .update({ discount_percent: discountPercent })
+        .eq("id", product.id);
+      if (error) throw error;
+      return product;
+    },
+    onSuccess: async (product) => {
+      setNotice(`Descuento de ${product.name} aprobado y publicado.`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-products-discounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["featured-products-by-discount"] }),
+      ]);
+    },
+  });
+
+  const products = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase();
+    return (productsQuery.data ?? []).filter(
+      (product) =>
+        !term ||
+        product.name.toLocaleLowerCase().includes(term) ||
+        product.sku.toLocaleLowerCase().includes(term),
+    );
+  }, [productsQuery.data, search]);
+  const pendingProposals = useMemo(
+    () =>
+      (productsQuery.data ?? []).flatMap((product) => {
+        const proposal = calculateDiscountProposal(product);
+        const currentDiscount = Number(product.discount_percent ?? 0);
+        if (!proposal || Math.abs(currentDiscount - proposal.discountPercent) < 0.005) return [];
+        return [{ product, discountPercent: proposal.discountPercent }];
+      }),
+    [productsQuery.data],
+  );
+  const bulkUpdateDiscounts = useMutation({
+    mutationFn: async (
+      approvals: Array<{ product: AdminDiscountProduct; discountPercent: number }>,
+    ) => {
+      const batchSize = 10;
+      for (let start = 0; start < approvals.length; start += batchSize) {
+        const batch = approvals.slice(start, start + batchSize);
+        await Promise.all(
+          batch.map(async ({ product, discountPercent }) => {
+            const { error } = await inventario
+              .from("products")
+              .update({ discount_percent: discountPercent })
+              .eq("id", product.id);
+            if (error) throw error;
+          }),
+        );
+      }
+      return approvals.length;
+    },
+    onSuccess: (approvedCount) => {
+      setNotice(`${approvedCount} descuentos aprobados y publicados correctamente.`);
+    },
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-products-discounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["featured-products-by-discount"] }),
+      ]);
+    },
+  });
+
+  return (
+    <section>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-display text-3xl font-bold tracking-tight">
+            Propuestas de descuento
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-black/55">
+            Calculadas con hasta 30% OFF, redondeo a Gs. 1.000 y al menos 10% de margen sobre el
+            costo. Solo se publican cuando las aprobás.
+          </p>
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <label className="relative block w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-black/40" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar producto o SKU…"
+              className="h-11 w-full border border-black/15 bg-white pl-10 pr-3 text-sm outline-none focus:border-black"
+            />
+          </label>
+          <button
+            disabled={
+              pendingProposals.length === 0 ||
+              bulkUpdateDiscounts.isPending ||
+              updateDiscount.isPending
+            }
+            onClick={() => {
+              const confirmed = window.confirm(
+                `¿Aprobar y publicar las ${pendingProposals.length} propuestas pendientes?`,
+              );
+              if (!confirmed) return;
+              setNotice("");
+              updateDiscount.reset();
+              bulkUpdateDiscounts.mutate(pendingProposals);
+            }}
+            className="h-11 bg-black px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            {bulkUpdateDiscounts.isPending
+              ? "Publicando todos…"
+              : `Aprobar todos (${pendingProposals.length})`}
+          </button>
+        </div>
+      </div>
+
+      {notice && (
+        <div className="mb-5 border border-green-700/20 bg-green-50 p-3 text-sm text-green-800">
+          {notice}
+        </div>
+      )}
+      {(updateDiscount.error || bulkUpdateDiscounts.error) && (
+        <div className="mb-5 border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">
+          No se pudieron guardar todos los descuentos. Se actualizó la lista para reflejar cuáles
+          quedaron aprobados. Verificá tus permisos antes de volver a intentar.
+        </div>
+      )}
+
+      {productsQuery.isLoading ? (
+        <CenteredMessage message="Calculando propuestas…" />
+      ) : productsQuery.error ? (
+        <CenteredMessage message="No se pudieron cargar costos y precios. Verificá tus permisos." />
+      ) : (
+        <div className="overflow-x-auto border border-black/10 bg-white">
+          <table className="w-full min-w-[860px] text-left text-sm">
+            <thead className="border-b border-black/10 bg-black/[0.03] text-[10px] uppercase tracking-[0.16em] text-black/50">
+              <tr>
+                <th className="px-4 py-3">Producto</th>
+                <th className="px-4 py-3">Costo</th>
+                <th className="px-4 py-3">Precio lista</th>
+                <th className="px-4 py-3">Propuesta</th>
+                <th className="px-4 py-3">Descuento</th>
+                <th className="px-4 py-3 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/10">
+              {products.map((product) => {
+                const proposal = calculateDiscountProposal(product);
+                const currentDiscount = Number(product.discount_percent ?? 0);
+                const isApproved =
+                  proposal && Math.abs(currentDiscount - proposal.discountPercent) < 0.005;
+                const isPending =
+                  updateDiscount.isPending && updateDiscount.variables?.product.id === product.id;
+
+                return (
+                  <tr key={product.id}>
+                    <td className="px-4 py-4">
+                      <span className="block font-semibold">{product.name}</span>
+                      <span className="text-xs text-black/45">{product.sku}</span>
+                    </td>
+                    <td className="px-4 py-4">{formatGs(Number(product.purchase_price))}</td>
+                    <td className="px-4 py-4">{formatGs(Number(product.sale_price))}</td>
+                    <td className="px-4 py-4 font-semibold">
+                      {proposal ? formatGs(proposal.finalPrice) : "Sin margen"}
+                    </td>
+                    <td className="px-4 py-4">
+                      {proposal ? `${proposal.discountPercent.toFixed(0)}% OFF` : "—"}
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      {isApproved ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                          <CheckCircle2 className="size-4" /> Aprobado
+                        </span>
+                      ) : (
+                        <button
+                          disabled={!proposal || isPending || bulkUpdateDiscounts.isPending}
+                          onClick={() => {
+                            if (!proposal) return;
+                            setNotice("");
+                            bulkUpdateDiscounts.reset();
+                            updateDiscount.mutate({
+                              product,
+                              discountPercent: proposal.discountPercent,
+                            });
+                          }}
+                          className="bg-black px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-35"
+                        >
+                          {isPending ? "Publicando…" : "Aprobar"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {products.length === 0 && <CenteredMessage message="No encontramos productos." />}
+        </div>
+      )}
+    </section>
   );
 }
 
