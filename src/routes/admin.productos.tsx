@@ -13,6 +13,7 @@ import {
   LogOut,
   PackageCheck,
   Percent,
+  RefreshCw,
   Search,
   Trash2,
   Upload,
@@ -23,8 +24,11 @@ import { formatGs } from "@/lib/format";
 import {
   getAdminEcommerceOrders,
   getEcommerceMe,
-  getEcommerceProducts,
+  getEcommerceSyncProducts,
+  updateEcommerceSyncProducts,
   updateEcommerceOrderStatus,
+  type EcommerceSyncIssue,
+  type EcommerceSyncProduct,
 } from "@/integrations/inventario/ecommerce-api";
 
 type AdminProduct = {
@@ -32,6 +36,7 @@ type AdminProduct = {
   name: string;
   sku: string;
   image_url: string | null;
+  is_active?: boolean;
 };
 
 type AdminDiscountProduct = AdminProduct & {
@@ -40,7 +45,7 @@ type AdminDiscountProduct = AdminProduct & {
   discount_percent: number | null;
 };
 
-type AdminSection = "orders" | "discounts" | "images";
+type AdminSection = "orders" | "discounts" | "images" | "sync";
 
 export const Route = createFileRoute("/admin/productos")({
   component: AdminProductsPage,
@@ -162,15 +167,22 @@ function AdminPanel({ session }: { session: Session }) {
     access?.permissions.some((value) => /product.*(price|discount|update)/i.test(value)) ||
     access?.sections.some((value) => /precio|descuento|discount/i.test(value)),
   );
+  const canManageSync = Boolean(
+    access?.roles.some((role) => ["admin", "ecommerce_manager"].includes(role)),
+  );
 
   useEffect(() => {
     if (!access || canManageOrders) return;
     if (canManageDiscounts) setSection("discounts");
     else if (canManageImages) setSection("images");
-  }, [access, canManageDiscounts, canManageImages, canManageOrders]);
+    else if (canManageSync) setSection("sync");
+  }, [access, canManageDiscounts, canManageImages, canManageOrders, canManageSync]);
 
   if (permissionsQuery.isLoading) return <CenteredMessage message="Cargando permisos…" />;
-  if (permissionsQuery.error || (!canManageOrders && !canManageDiscounts && !canManageImages)) {
+  if (
+    permissionsQuery.error ||
+    (!canManageOrders && !canManageDiscounts && !canManageImages && !canManageSync)
+  ) {
     return (
       <CenteredMessage message="Tu usuario no tiene permisos para acceder al panel del e-commerce." />
     );
@@ -223,16 +235,391 @@ function AdminPanel({ session }: { session: Session }) {
               label="Descuentos"
             />
           )}
+          {canManageSync && (
+            <AdminNavButton
+              active={section === "sync"}
+              onClick={() => setSection("sync")}
+              icon={<RefreshCw className="size-4" />}
+              label="Sincronizar"
+            />
+          )}
         </nav>
         {section === "orders" && canManageOrders ? (
           <OrdersDashboard session={session} />
         ) : section === "discounts" && canManageDiscounts ? (
           <ProductDiscountManager />
+        ) : section === "sync" && canManageSync ? (
+          <ProductSyncManager session={session} />
         ) : (
           <ProductImageManager email={session.user.email ?? "Admin"} />
         )}
       </div>
     </main>
+  );
+}
+
+const SYNC_FILTERS: Array<{ value: "todos" | EcommerceSyncIssue; label: string }> = [
+  { value: "todos", label: "Con problemas" },
+  { value: "inactivo", label: "Inactivos" },
+  { value: "sin_stock", label: "Sin stock" },
+  { value: "sin_imagen", label: "Sin imagen" },
+];
+
+const SYNC_ISSUE_LABELS: Record<EcommerceSyncIssue, string> = {
+  inactivo: "Inactivo",
+  sin_stock: "Sin stock",
+  sin_imagen: "Sin imagen",
+};
+
+function ProductSyncManager({ session }: { session: Session }) {
+  const queryClient = useQueryClient();
+  const [issueFilter, setIssueFilter] = useState<"todos" | EcommerceSyncIssue>("todos");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [showAll, setShowAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [notice, setNotice] = useState("");
+
+  const syncQuery = useQuery({
+    queryKey: ["ecommerce-sync", issueFilter, search, showAll],
+    queryFn: () =>
+      getEcommerceSyncProducts(session, {
+        issue: issueFilter === "todos" ? undefined : issueFilter,
+        search: search || undefined,
+        onlyIssues: !showAll,
+      }),
+  });
+  const products = useMemo(() => syncQuery.data?.data ?? [], [syncQuery.data?.data]);
+  const summary = syncQuery.data?.summary;
+
+  useEffect(() => {
+    const visibleIds = new Set(products.map((product) => product.id));
+    setSelectedIds((current) => {
+      const next = new Set([...current].filter((id) => visibleIds.has(id)));
+      if (next.size === current.size && [...next].every((id) => current.has(id))) return current;
+      return next;
+    });
+  }, [products]);
+
+  const syncMutation = useMutation({
+    mutationFn: ({ productIds, publish }: { productIds: string[]; publish: boolean }) =>
+      updateEcommerceSyncProducts(session, productIds, publish),
+    onSuccess: async (_result, variables) => {
+      setNotice(
+        `${variables.productIds.length} producto${variables.productIds.length === 1 ? "" : "s"} ${
+          variables.publish ? "publicado" : "despublicado"
+        }${variables.productIds.length === 1 ? "" : "s"} correctamente.`,
+      );
+      setSelectedIds(new Set());
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["ecommerce-sync"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["featured-products-by-discount"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-products-images"] }),
+      ]);
+    },
+  });
+
+  const allSelected =
+    products.length > 0 && products.every((product) => selectedIds.has(product.id));
+  const selectedProducts = products.filter((product) => selectedIds.has(product.id));
+  const selectedAreVisible =
+    selectedProducts.length > 0 && selectedProducts.every((product) => product.visible_in_store);
+
+  const toggleAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(products.map((product) => product.id)));
+  };
+  const toggleProduct = (productId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+  const changePublication = (productIds: string[], publish: boolean) => {
+    if (productIds.length === 0) return;
+    const action = publish ? "publicar" : "despublicar";
+    if (
+      !window.confirm(
+        `¿${action[0].toUpperCase()}${action.slice(1)} ${productIds.length} producto${productIds.length === 1 ? "" : "s"}?`,
+      )
+    )
+      return;
+    setNotice("");
+    syncMutation.reset();
+    syncMutation.mutate({ productIds, publish });
+  };
+
+  return (
+    <section>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-display text-3xl font-bold tracking-tight">
+            Sincronización de productos
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-black/55">
+            Detectá por qué un producto no aparece en la tienda y administrá su publicación.
+          </p>
+        </div>
+        <button
+          onClick={() => void syncQuery.refetch()}
+          disabled={syncQuery.isFetching}
+          className="inline-flex h-11 items-center justify-center gap-2 border border-black/20 bg-white px-4 text-sm font-semibold hover:border-black disabled:opacity-50"
+        >
+          <RefreshCw className={`size-4 ${syncQuery.isFetching ? "animate-spin" : ""}`} />
+          Actualizar diagnóstico
+        </button>
+      </div>
+
+      {summary && (
+        <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <SyncSummaryCard label="Diagnosticados" value={summary.total} />
+          <SyncSummaryCard label="Inactivos" value={summary.inactivo} tone="text-amber-800" />
+          <SyncSummaryCard label="Sin stock" value={summary.sin_stock} tone="text-red-700" />
+          <SyncSummaryCard label="Sin imagen" value={summary.sin_imagen} tone="text-violet-700" />
+          <SyncSummaryCard
+            label="Publicados OK"
+            value={summary.publicados_ok}
+            tone="text-emerald-700"
+          />
+        </div>
+      )}
+
+      <div className="mb-4 space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {SYNC_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => {
+                setIssueFilter(filter.value);
+                setSelectedIds(new Set());
+              }}
+              className={`border px-3 py-2 text-xs font-semibold ${issueFilter === filter.value ? "border-black bg-black text-white" : "border-black/15 bg-white"}`}
+            >
+              {filter.label}
+            </button>
+          ))}
+          <label className="ml-auto inline-flex items-center gap-2 border border-black/15 bg-white px-3 py-2 text-xs font-semibold">
+            <input
+              type="checkbox"
+              checked={showAll}
+              onChange={(event) => {
+                setShowAll(event.target.checked);
+                setSelectedIds(new Set());
+              }}
+              className="size-4 accent-black"
+            />
+            Mostrar todo el catálogo
+          </label>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <form
+            className="relative flex-1"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setSearch(searchInput.trim());
+              setSelectedIds(new Set());
+            }}
+          >
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-black/40" />
+            <input
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder='Buscar por nombre o SKU, ej. "Veneno Blanco"…'
+              className="h-11 w-full border border-black/15 bg-white pl-10 pr-24 text-sm outline-none focus:border-black"
+            />
+            <button className="absolute right-1 top-1 h-9 bg-black px-4 text-xs font-semibold text-white">
+              Buscar
+            </button>
+          </form>
+          <button
+            disabled={selectedIds.size === 0 || syncMutation.isPending}
+            onClick={() => changePublication([...selectedIds], !selectedAreVisible)}
+            className={`h-11 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-35 ${selectedAreVisible ? "border border-black/20 bg-white" : "bg-black text-white"}`}
+          >
+            {syncMutation.isPending
+              ? "Sincronizando…"
+              : `${selectedAreVisible ? "Despublicar" : "Publicar"} seleccionados (${selectedIds.size})`}
+          </button>
+        </div>
+      </div>
+
+      {notice && (
+        <div className="mb-5 border border-green-700/20 bg-green-50 p-3 text-sm text-green-800">
+          {notice}
+        </div>
+      )}
+      {syncMutation.error && (
+        <div className="mb-5 border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">
+          {syncMutation.error instanceof Error
+            ? syncMutation.error.message
+            : "No se pudieron sincronizar los productos."}
+        </div>
+      )}
+
+      {syncQuery.isLoading ? (
+        <CenteredMessage message="Diagnosticando productos…" />
+      ) : syncQuery.error ? (
+        <CenteredMessage
+          message={
+            syncQuery.error instanceof Error
+              ? `No se pudo cargar el diagnóstico: ${syncQuery.error.message}`
+              : "No se pudo cargar el diagnóstico de productos."
+          }
+        />
+      ) : products.length === 0 ? (
+        <div className="border border-emerald-700/20 bg-emerald-50 p-8 text-center">
+          <CheckCircle2 className="mx-auto size-8 text-emerald-700" />
+          <p className="mt-3 font-semibold">No encontramos productos con este diagnóstico.</p>
+          <p className="mt-1 text-sm text-black/50">Probá otro filtro o una búsqueda diferente.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto border border-black/10 bg-white">
+          <table className="w-full min-w-[960px] text-left text-sm">
+            <thead className="border-b border-black/10 bg-black/[0.03] text-[10px] uppercase tracking-[0.16em] text-black/50">
+              <tr>
+                <th className="w-12 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    aria-label="Seleccionar todos los productos visibles"
+                    className="size-4 accent-black"
+                  />
+                </th>
+                <th className="px-4 py-3">Producto</th>
+                <th className="px-4 py-3">Disponible</th>
+                <th className="px-4 py-3">Diagnóstico</th>
+                <th className="px-4 py-3">Tienda</th>
+                <th className="px-4 py-3 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/10">
+              {products.map((product) => (
+                <SyncProductRow
+                  key={product.id}
+                  product={product}
+                  selected={selectedIds.has(product.id)}
+                  pending={
+                    syncMutation.isPending &&
+                    Boolean(syncMutation.variables?.productIds.includes(product.id))
+                  }
+                  onToggle={() => toggleProduct(product.id)}
+                  onChangePublication={(publish) => changePublication([product.id], publish)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SyncSummaryCard({
+  label,
+  value,
+  tone = "text-black",
+}: {
+  label: string;
+  value: number;
+  tone?: string;
+}) {
+  return (
+    <div className="border border-black/10 bg-white p-4">
+      <span className={`font-display text-3xl font-bold ${tone}`}>{value}</span>
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-black/50">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function SyncProductRow({
+  product,
+  selected,
+  pending,
+  onToggle,
+  onChangePublication,
+}: {
+  product: EcommerceSyncProduct;
+  selected: boolean;
+  pending: boolean;
+  onToggle: () => void;
+  onChangePublication: (publish: boolean) => void;
+}) {
+  return (
+    <tr className={selected ? "bg-black/[0.025]" : undefined}>
+      <td className="px-4 py-4">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          aria-label={`Seleccionar ${product.name}`}
+          className="size-4 accent-black"
+        />
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden bg-[#f4f4f2]">
+            {product.image_url ? (
+              <img src={product.image_url} alt="" className="size-full object-contain p-1" />
+            ) : (
+              <ImagePlus className="size-5 text-black/20" />
+            )}
+          </div>
+          <div>
+            <span className="block font-semibold">{product.name}</span>
+            <span className="text-xs text-black/45">{product.sku}</span>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <span className="block">{Number(product.available_stock || 0)} unidades</span>
+        {Number(product.available_volume_ml || 0) > 0 && (
+          <span className="text-xs text-black/45">{product.available_volume_ml} ml</span>
+        )}
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex flex-wrap gap-1.5">
+          {product.issues.length > 0 ? (
+            product.issues.map((issue) => (
+              <span
+                key={issue}
+                className="bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-900"
+              >
+                {SYNC_ISSUE_LABELS[issue] ?? issue}
+              </span>
+            ))
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <CheckCircle2 className="size-4" /> Sin problemas
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <span
+          className={`text-xs font-semibold ${product.visible_in_store ? "text-emerald-700" : "text-black/45"}`}
+        >
+          {product.visible_in_store ? "Publicado" : "No visible"}
+        </span>
+      </td>
+      <td className="px-4 py-4 text-right">
+        <button
+          disabled={pending}
+          onClick={() => onChangePublication(!product.visible_in_store)}
+          className={`px-3 py-2 text-xs font-semibold disabled:opacity-50 ${
+            product.visible_in_store
+              ? "border border-black/15 bg-white hover:border-black"
+              : "bg-black text-white"
+          }`}
+        >
+          {pending ? "Sincronizando…" : product.visible_in_store ? "Despublicar" : "Publicar"}
+        </button>
+      </td>
+    </tr>
   );
 }
 
@@ -750,6 +1137,57 @@ function ProductDiscountManager() {
   );
 }
 
+function normalizeProductSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function isOneEditAway(first: string, second: string) {
+  if (Math.abs(first.length - second.length) > 1) return false;
+  let firstIndex = 0;
+  let secondIndex = 0;
+  let edits = 0;
+
+  while (firstIndex < first.length && secondIndex < second.length) {
+    if (first[firstIndex] === second[secondIndex]) {
+      firstIndex += 1;
+      secondIndex += 1;
+      continue;
+    }
+    edits += 1;
+    if (edits > 1) return false;
+    if (first.length > second.length) firstIndex += 1;
+    else if (second.length > first.length) secondIndex += 1;
+    else {
+      firstIndex += 1;
+      secondIndex += 1;
+    }
+  }
+
+  return true;
+}
+
+function matchesProductSearch(value: string, search: string) {
+  const normalizedValue = normalizeProductSearch(value);
+  const normalizedSearch = normalizeProductSearch(search);
+  if (!normalizedSearch || normalizedValue.includes(normalizedSearch)) return true;
+
+  const valueWords = normalizedValue.split(" ");
+  return normalizedSearch
+    .split(" ")
+    .every((searchWord) =>
+      valueWords.some(
+        (valueWord) =>
+          valueWord.includes(searchWord) ||
+          (searchWord.length >= 4 && isOneEditAway(valueWord, searchWord)),
+      ),
+    );
+}
+
 function ProductImageManager({ email }: { email: string }) {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -758,18 +1196,21 @@ function ProductImageManager({ email }: { email: string }) {
   const productsQuery = useQuery({
     queryKey: ["admin-products-images"],
     queryFn: async () => {
-      const { items } = await getEcommerceProducts({ page: 1, limit: 500 });
-      return items as AdminProduct[];
+      const { data, error } = await inventario
+        .from("products")
+        .select("id,name,sku,image_url,is_active")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AdminProduct[];
     },
   });
 
   const products = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase();
+    const term = search.trim();
     const filtered = term
       ? (productsQuery.data ?? []).filter(
           (product) =>
-            product.name.toLocaleLowerCase().includes(term) ||
-            product.sku.toLocaleLowerCase().includes(term),
+            matchesProductSearch(product.name, term) || matchesProductSearch(product.sku, term),
         )
       : (productsQuery.data ?? []);
 

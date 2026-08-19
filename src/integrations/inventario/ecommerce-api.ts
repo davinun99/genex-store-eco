@@ -171,3 +171,58 @@ export async function updateEcommerceOrderStatus(
     body: { status, ...(notes ? { notes } : {}) },
   });
 }
+
+export type EcommerceSyncIssue = "inactivo" | "sin_stock" | "sin_imagen";
+
+export type EcommerceSyncProduct = {
+  id: string;
+  name: string;
+  sku: string;
+  is_active: boolean;
+  available_stock: number;
+  available_volume_ml: number;
+  image_url: string | null;
+  issues: EcommerceSyncIssue[];
+  visible_in_store: boolean;
+};
+
+export type EcommerceSyncSummary = {
+  total: number;
+  inactivo: number;
+  sin_stock: number;
+  sin_imagen: number;
+  publicados_ok: number;
+};
+
+export type EcommerceSyncResponse = {
+  data: EcommerceSyncProduct[];
+  summary: EcommerceSyncSummary;
+};
+
+export async function getEcommerceSyncProducts(
+  session: Session,
+  params: {
+    issue?: EcommerceSyncIssue;
+    search?: string;
+    onlyIssues?: boolean;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.issue) query.set("issue", params.issue);
+  if (params.search) query.set("search", params.search);
+  if (params.onlyIssues === false) query.set("only_issues", "false");
+  const suffix = query.size ? `?${query}` : "";
+  return apiRequest<EcommerceSyncResponse>(`/ecommerce-sync${suffix}`, { session });
+}
+
+export async function updateEcommerceSyncProducts(
+  session: Session,
+  productIds: string[],
+  publish: boolean,
+) {
+  return apiRequest<EcommerceSyncResponse>("/ecommerce-sync", {
+    method: "POST",
+    session,
+    body: { product_ids: productIds, publish },
+  });
+}
