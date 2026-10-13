@@ -55,6 +55,18 @@ export function Header({ onSearch, searchValue }: HeaderProps) {
           )}
         </button>
       </div>
+
+      {onSearch && (
+        <div className="relative border-t border-black/10 px-4 py-2 md:hidden">
+          <Search className="pointer-events-none absolute left-7 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={searchValue ?? ""}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Buscar productos…"
+            className="h-10 w-full rounded-none border-0 border-b border-black/20 bg-transparent pl-9 pr-1 text-sm outline-none transition placeholder:text-black/40 focus:border-black"
+          />
+        </div>
+      )}
     </header>
   );
 }

@@ -2,7 +2,7 @@ export const STORE = {
   name: "Genex Store",
   url: "https://genexstore.com.py",
   tagline: "Tecnología y accesorios",
-  whatsapp: "595984849454",
+  whatsapp: "595991314773",
   email: "nunezbenitezpablo@gmail.com",
   address: "Sobre Dr. Sosa, casi Avenida Madame Lynch",
   mapsUrl: "https://maps.app.goo.gl/Q8PyZxvsWVJMCSgR8",
@@ -43,5 +43,6 @@ export const BANK_ACCOUNTS: BankAccount[] = [
 
 export const QUICK_ALIAS = [
   { label: "Alias por teléfono", value: "0984 849 454" },
+  { label: "Alias por teléfono", value: "0991 314 773" },
   { label: "Alias por cédula", value: "5527537" },
 ];

@@ -143,7 +143,10 @@ function Home() {
   useEffect(() => {
     const t = setTimeout(() => {
       if (searchInput !== q) {
-        navigate({ search: (prev: SearchParams) => ({ ...prev, q: searchInput, page: 1 }) });
+        navigate({
+          search: (prev: SearchParams) => ({ ...prev, q: searchInput, page: 1 }),
+          resetScroll: false,
+        });
       }
     }, 350);
     return () => clearTimeout(t);
@@ -305,16 +308,6 @@ function Home() {
             {cat === "all" ? "Explorar categorías" : "Cambiar categoría"}
             <ArrowRight className="size-3.5" />
           </a>
-        </div>
-
-        {/* Mobile search */}
-        <div className="mb-4 mt-6 md:hidden">
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Buscar productos…"
-            className="h-11 w-full border-0 border-b border-black/20 bg-white px-1 text-sm outline-none focus:border-black"
-          />
         </div>
 
         {error && (
