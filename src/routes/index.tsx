@@ -147,6 +147,12 @@ function Home() {
           search: (prev: SearchParams) => ({ ...prev, q: searchInput, page: 1 }),
           resetScroll: false,
         });
+        if (searchInput.trim() !== "") {
+          document.getElementById("catalogo")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
       }
     }, 350);
     return () => clearTimeout(t);
@@ -361,7 +367,7 @@ function Home() {
             >
               <MessageCircle className="size-4" />
               <span>WhatsApp</span>
-              <span className="font-medium text-white">0984 849 454</span>
+              <span className="font-medium text-white">0991 314 773</span>
             </a>
             <div className="mt-5">
               <Link
