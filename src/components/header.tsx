@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Search } from "lucide-react";
+import { Ghost, ShoppingBag, Search } from "lucide-react";
 import { useCart } from "@/contexts/cart-context";
 import { STORE } from "@/lib/store-config";
 
@@ -12,8 +12,10 @@ export function Header({ onSearch, searchValue }: HeaderProps) {
   const { totalItems, setOpen } = useCart();
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur-md">
-      <div className="bg-[#ff3b30] px-4 py-2 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white sm:text-xs">
-        Hasta 30% OFF en toda la tienda · Por tiempo limitado
+      <div className="flex items-center justify-center gap-2 bg-[#24152f] px-3 py-2 text-center text-[9px] font-bold uppercase tracking-[0.08em] text-white sm:px-4 sm:text-xs sm:tracking-[0.16em]">
+        <Ghost className="size-3.5 text-[#ff9b36]" aria-hidden="true" />
+        Halloween · Hasta 30% OFF en productos seleccionados
+        <Ghost className="hidden size-3.5 -scale-x-100 text-[#ff9b36] sm:block" aria-hidden="true" />
       </div>
       <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link

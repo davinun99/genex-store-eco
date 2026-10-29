@@ -23,6 +23,8 @@ import {
   ChevronRight,
   LayoutGrid,
   MapPin,
+  Ghost,
+  Sparkles,
 } from "lucide-react";
 
 const PAGE_SIZE = 12;
@@ -244,37 +246,51 @@ function Home() {
     <div className="min-h-screen bg-background">
       <Header onSearch={setSearchInput} searchValue={searchInput} />
 
-      <section className="border-b border-black bg-black text-white">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
-          <div className="max-w-4xl">
-            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ff6259]">
-              Promoción por tiempo limitado
+      <section className="halloween-hero relative overflow-hidden border-b border-[#2d1a37] text-white">
+        <div className="halloween-glow halloween-glow-one" aria-hidden="true" />
+        <div className="halloween-glow halloween-glow-two" aria-hidden="true" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-24">
+          <div className="relative z-10 max-w-3xl">
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#ff9b36]/35 bg-[#ff9b36]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#ffb35c]">
+              <Sparkles className="size-3.5" aria-hidden="true" /> Especial Halloween
             </p>
-            <h1 className="font-display text-5xl font-bold leading-[0.92] tracking-[-0.065em] sm:text-7xl lg:text-8xl">
-              HASTA 30% OFF.
+            <h1 className="font-display text-5xl font-bold leading-[0.9] tracking-[-0.065em] sm:text-7xl lg:text-[5.5rem]">
+              OFERTAS DE
               <br />
-              EN TODA LA TIENDA.
+              <span className="text-[#ff9b36]">MIEDO.</span>
             </h1>
-            <p className="mt-7 max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">
-              Aprovechá precios especiales en productos seleccionados de todas nuestras categorías.
-              El descuento ya aparece aplicado.
+            <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
+              Que no te asuste el precio: encontrá hasta 30% OFF en productos seleccionados. El
+              descuento ya aparece aplicado.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#catalogo"
-                className="inline-flex items-center gap-2 border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
+                className="inline-flex items-center gap-2 border border-[#ff9b36] bg-[#ff9b36] px-5 py-3 text-sm font-bold text-[#211326] transition hover:border-[#ffb35c] hover:bg-[#ffb35c]"
               >
-                Ver catálogo <ArrowRight className="size-4" />
+                Ver ofertas <ArrowRight className="size-4" />
               </a>
               <a
                 href={`https://wa.me/${STORE.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 border border-white/35 px-5 py-3 text-sm font-semibold transition hover:border-white"
+                className="inline-flex items-center gap-2 border border-white/30 px-5 py-3 text-sm font-semibold transition hover:border-[#ff9b36] hover:text-[#ffb35c]"
               >
                 <MessageCircle className="size-4" /> WhatsApp
               </a>
             </div>
+          </div>
+          <div className="halloween-art relative mx-auto grid aspect-square w-full max-w-[330px] place-items-center sm:max-w-[390px]" aria-hidden="true">
+            <div className="halloween-orbit absolute inset-[9%] rounded-full border border-white/10" />
+            <div className="halloween-orbit halloween-orbit-inner absolute inset-[20%] rounded-full border border-dashed border-[#ff9b36]/25" />
+            <Sparkles className="absolute right-[17%] top-[13%] size-9 rotate-12 text-[#ffcf82] sm:size-11" />
+            <Sparkles className="absolute left-[15%] top-[27%] size-6 text-[#ffb35c]" />
+            <Sparkles className="absolute bottom-[23%] right-[15%] size-5 text-white/70" />
+            <div className="halloween-ghost-wrap relative grid size-[68%] place-items-center rounded-full bg-[radial-gradient(circle,#713b69_0%,#45284c_42%,#30203c_68%,transparent_70%)]">
+              <Ghost className="halloween-ghost h-[72%] w-[72%] fill-[#fff4dd] text-[#fff4dd] drop-shadow-[0_14px_30px_rgba(255,155,54,0.22)]" strokeWidth={1.2} />
+              <span className="absolute bottom-[23%] left-1/2 -translate-x-1/2 font-display text-[10px] font-bold uppercase tracking-[0.25em] text-[#38223e]">BOO!</span>
+            </div>
+            <span className="absolute bottom-[9%] left-[10%] rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-white/70">Dulces descuentos</span>
           </div>
         </div>
       </section>
@@ -352,7 +368,7 @@ function Home() {
         )}
       </section>
 
-      <footer className="border-t border-white/10 bg-black py-14 text-white sm:py-16">
+      <footer className="border-t border-[#ff9b36]/20 bg-[#24152f] py-14 text-white sm:py-16">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-2 md:items-end lg:px-8">
           <div className="text-center md:text-left">
             <div className="font-display text-3xl font-bold tracking-[-0.06em] text-white">
@@ -435,7 +451,7 @@ function CategoryShowcase({
   };
 
   return (
-    <section className="overflow-hidden border-b border-black bg-white py-12 sm:py-16">
+    <section className="overflow-hidden border-b border-[#2d1a37]/10 bg-[#fffcf8] py-12 sm:py-16">
       <div className="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
         <div
           id="categorias"
@@ -485,8 +501,8 @@ function CategoryShowcase({
                 onClick={() => onSelect("all")}
                 className={`group relative flex h-44 w-[78vw] max-w-[300px] shrink-0 snap-start flex-col justify-between overflow-hidden border p-5 text-left transition sm:h-48 ${
                   activeCategory === "all"
-                    ? "border-black bg-black text-white"
-                    : "border-black bg-white hover:bg-black hover:text-white"
+                    ? "border-[#2d1a37] bg-[#2d1a37] text-white ring-1 ring-[#ff9b36]"
+                    : "border-[#2d1a37]/20 bg-white hover:border-[#2d1a37] hover:bg-[#2d1a37] hover:text-white"
                 }`}
               >
                 <LayoutGrid className="size-6" strokeWidth={1.5} />
@@ -511,8 +527,8 @@ function CategoryShowcase({
                     onClick={() => onSelect(category.id)}
                     className={`group relative flex h-44 w-[78vw] max-w-[300px] shrink-0 snap-start flex-col justify-between overflow-hidden border p-5 text-left transition sm:h-48 ${
                       isActive
-                        ? "border-black bg-black text-white"
-                        : "border-black bg-white hover:bg-black hover:text-white"
+                        ? "border-[#2d1a37] bg-[#2d1a37] text-white ring-1 ring-[#ff9b36]"
+                        : "border-[#2d1a37]/20 bg-white hover:border-[#2d1a37] hover:bg-[#2d1a37] hover:text-white"
                     }`}
                   >
                     <span className="font-display text-5xl font-bold tracking-[-0.08em] opacity-15">

@@ -142,6 +142,64 @@
   display: none;
 }
 
+.halloween-hero {
+  background:
+    radial-gradient(ellipse at 72% 50%, rgb(113 59 105 / 28%), transparent 42%),
+    linear-gradient(115deg, #211329 0%, #2d1a37 55%, #1a1222 100%);
+}
+
+.halloween-glow {
+  position: absolute;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.halloween-glow-one {
+  top: -15rem;
+  right: 10%;
+  background: #f28b28;
+}
+
+.halloween-glow-two {
+  bottom: -19rem;
+  left: 20%;
+  background: #8c4b91;
+}
+
+.halloween-ghost-wrap {
+  animation: halloween-float 4s ease-in-out infinite;
+}
+
+.halloween-orbit {
+  animation: halloween-orbit 28s linear infinite;
+}
+
+.halloween-orbit-inner {
+  animation-direction: reverse;
+  animation-duration: 34s;
+}
+
+@keyframes halloween-float {
+  0%,
+  100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes halloween-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halloween-ghost-wrap,
+  .halloween-orbit {
+    animation: none;
+  }
+}
+
 .genex-loader {
   position: relative;
   display: grid;
