@@ -223,7 +223,7 @@ function ProductPage() {
                 {product.name}
               </h1>
               <div className="mt-4 flex flex-wrap items-end gap-3">
-                <div className="font-display text-3xl font-bold text-[#d21f18] xl:text-4xl">
+                <div className="font-display text-3xl font-bold text-[#b84913] xl:text-4xl">
                   {formatGs(selectedPrice)}
                 </div>
                 {promotion?.isPromoted && (
@@ -231,7 +231,7 @@ function ProductPage() {
                     <div className="pb-1 text-base text-muted-foreground line-through">
                       {formatGs(selectedOriginalPrice)}
                     </div>
-                    <span className="mb-1 bg-[#ff3b30] px-2 py-1 text-xs font-bold text-white">
+                    <span className="mb-1 bg-[#ec781b] px-2 py-1 text-xs font-bold text-white">
                       {promotion.discountPercent.toFixed(0)}% OFF
                     </span>
                   </>
@@ -339,7 +339,7 @@ function ProductPage() {
                       );
                       setOpen(true);
                     }}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-black bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-black"
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-[#2d1a37] bg-[#2d1a37] px-5 py-3 text-sm font-semibold text-white transition hover:border-[#ec781b] hover:bg-[#ec781b]"
                   >
                     <ShoppingBag className="size-4" /> Agregar al carrito
                   </button>
