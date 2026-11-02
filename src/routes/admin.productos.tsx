@@ -23,12 +23,15 @@ import { inventario } from "@/integrations/inventario/client";
 import { formatGs } from "@/lib/format";
 import {
   getAdminEcommerceOrders,
+  approveEcommerceDiscountProposals,
+  getEcommerceDiscountProposals,
   getEcommerceMe,
   getEcommerceSyncProducts,
   updateEcommerceSyncProducts,
   updateEcommerceOrderStatus,
   type EcommerceSyncIssue,
   type EcommerceSyncProduct,
+  type EcommerceDiscountProposal,
 } from "@/integrations/inventario/ecommerce-api";
 
 type AdminProduct = {
@@ -37,12 +40,6 @@ type AdminProduct = {
   sku: string;
   image_url: string | null;
   is_active?: boolean;
-};
-
-type AdminDiscountProduct = AdminProduct & {
-  purchase_price: number;
-  sale_price: number;
-  discount_percent: number | null;
 };
 
 type AdminSection = "orders" | "discounts" | "images" | "sync";
@@ -247,7 +244,7 @@ function AdminPanel({ session }: { session: Session }) {
         {section === "orders" && canManageOrders ? (
           <OrdersDashboard session={session} />
         ) : section === "discounts" && canManageDiscounts ? (
-          <ProductDiscountManager />
+          <ProductDiscountManager session={session} />
         ) : section === "sync" && canManageSync ? (
           <ProductSyncManager session={session} />
         ) : (
@@ -888,116 +885,32 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-const MAX_DISCOUNT_PERCENT = 30;
-const MIN_PROFIT_PERCENT = 10;
-const PRICE_ROUNDING = 1_000;
-
-function calculateDiscountProposal(product: AdminDiscountProduct) {
-  const salePrice = Number(product.sale_price);
-  const purchasePrice = Number(product.purchase_price);
-  if (!Number.isFinite(salePrice) || salePrice <= 0) return null;
-  if (!Number.isFinite(purchasePrice) || purchasePrice <= 0) return null;
-
-  const generalPromotionPrice =
-    Math.ceil((salePrice * (1 - MAX_DISCOUNT_PERCENT / 100)) / PRICE_ROUNDING) * PRICE_ROUNDING;
-  const minimumProfitablePrice =
-    Math.ceil((purchasePrice * (1 + MIN_PROFIT_PERCENT / 100)) / PRICE_ROUNDING) * PRICE_ROUNDING;
-  const finalPrice = Math.max(generalPromotionPrice, minimumProfitablePrice);
-  if (finalPrice >= salePrice) return null;
-
-  return {
-    finalPrice,
-    // La columna del backend conserva dos decimales; usamos la misma precisión
-    // para que una propuesta guardada no vuelva a aparecer como pendiente.
-    discountPercent: Math.round((1 - finalPrice / salePrice) * 10_000) / 100,
-  };
-}
-
-function ProductDiscountManager() {
+function ProductDiscountManager({ session }: { session: Session }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [notice, setNotice] = useState("");
   const productsQuery = useQuery({
-    queryKey: ["admin-products-discounts"],
-    queryFn: async () => {
-      const { data, error } = await inventario
-        .from("products")
-        .select("id,name,sku,image_url,purchase_price,sale_price,discount_percent")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as AdminDiscountProduct[];
-    },
+    queryKey: ["admin-products-discounts", session.user.id, page, search.trim()],
+    queryFn: () =>
+      getEcommerceDiscountProposals(session, { page, limit: 20, search }),
   });
-  const updateDiscount = useMutation({
-    mutationFn: async ({
-      product,
-      discountPercent,
-    }: {
-      product: AdminDiscountProduct;
-      discountPercent: number;
-    }) => {
-      const { error } = await inventario
-        .from("products")
-        .update({ discount_percent: discountPercent })
-        .eq("id", product.id);
-      if (error) throw error;
-      return product;
-    },
-    onSuccess: async (product) => {
-      setNotice(`Descuento de ${product.name} aprobado y publicado.`);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin-products-discounts"] }),
-        queryClient.invalidateQueries({ queryKey: ["products"] }),
-        queryClient.invalidateQueries({ queryKey: ["featured-products-by-discount"] }),
-      ]);
-    },
-  });
-
-  const products = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase();
-    return (productsQuery.data ?? []).filter(
-      (product) =>
-        !term ||
-        product.name.toLocaleLowerCase().includes(term) ||
-        product.sku.toLocaleLowerCase().includes(term),
-    );
-  }, [productsQuery.data, search]);
-  const pendingProposals = useMemo(
-    () =>
-      (productsQuery.data ?? []).flatMap((product) => {
-        const proposal = calculateDiscountProposal(product);
-        const currentDiscount = Number(product.discount_percent ?? 0);
-        if (!proposal || Math.abs(currentDiscount - proposal.discountPercent) < 0.005) return [];
-        return [{ product, discountPercent: proposal.discountPercent }];
-      }),
-    [productsQuery.data],
-  );
-  const bulkUpdateDiscounts = useMutation({
-    mutationFn: async (
-      approvals: Array<{ product: AdminDiscountProduct; discountPercent: number }>,
-    ) => {
-      const batchSize = 10;
-      for (let start = 0; start < approvals.length; start += batchSize) {
-        const batch = approvals.slice(start, start + batchSize);
-        await Promise.all(
-          batch.map(async ({ product, discountPercent }) => {
-            const { error } = await inventario
-              .from("products")
-              .update({ discount_percent: discountPercent })
-              .eq("id", product.id);
-            if (error) throw error;
-          }),
-        );
-      }
-      return approvals.length;
-    },
-    onSuccess: (approvedCount) => {
-      setNotice(`${approvedCount} descuentos aprobados y publicados correctamente.`);
+  const proposals = productsQuery.data?.data ?? [];
+  const pagination = productsQuery.data?.pagination;
+  const pendingProposals = proposals.filter((proposal) => proposal.eligible);
+  const approveProposals = useMutation({
+    mutationFn: (items: Array<{ product_id: string; discount_percent: number }>) =>
+      approveEcommerceDiscountProposals(session, items),
+    onSuccess: ({ updated, rejected }) => {
+      setNotice(
+        rejected > 0
+          ? `${updated} descuentos aprobados; ${rejected} rechazados por el backend.`
+          : `${updated} descuentos aprobados y publicados correctamente.`,
+      );
     },
     onSettled: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin-products-discounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-products-discounts", session.user.id] }),
         queryClient.invalidateQueries({ queryKey: ["products"] }),
         queryClient.invalidateQueries({ queryKey: ["featured-products-by-discount"] }),
       ]);
@@ -1021,31 +934,35 @@ function ProductDiscountManager() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-black/40" />
             <input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+                setNotice("");
+              }}
               placeholder="Buscar producto o SKU…"
               className="h-11 w-full border border-black/15 bg-white pl-10 pr-3 text-sm outline-none focus:border-black"
             />
           </label>
           <button
-            disabled={
-              pendingProposals.length === 0 ||
-              bulkUpdateDiscounts.isPending ||
-              updateDiscount.isPending
-            }
+            disabled={pendingProposals.length === 0 || approveProposals.isPending}
             onClick={() => {
               const confirmed = window.confirm(
-                `¿Aprobar y publicar las ${pendingProposals.length} propuestas pendientes?`,
+                `¿Aprobar y publicar las ${pendingProposals.length} propuestas elegibles de esta página?`,
               );
               if (!confirmed) return;
               setNotice("");
-              updateDiscount.reset();
-              bulkUpdateDiscounts.mutate(pendingProposals);
+              approveProposals.mutate(
+                pendingProposals.slice(0, 50).map((proposal) => ({
+                  product_id: proposal.id,
+                  discount_percent: Number(proposal.proposed_discount_percent),
+                })),
+              );
             }}
             className="h-11 bg-black px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-35"
           >
-            {bulkUpdateDiscounts.isPending
-              ? "Publicando todos…"
-              : `Aprobar todos (${pendingProposals.length})`}
+            {approveProposals.isPending
+              ? "Publicando…"
+              : `Aprobar elegibles (${pendingProposals.length})`}
           </button>
         </div>
       </div>
@@ -1055,20 +972,21 @@ function ProductDiscountManager() {
           {notice}
         </div>
       )}
-      {(updateDiscount.error || bulkUpdateDiscounts.error) && (
+      {approveProposals.error && (
         <div className="mb-5 border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">
-          No se pudieron guardar todos los descuentos. Se actualizó la lista para reflejar cuáles
-          quedaron aprobados. Verificá tus permisos antes de volver a intentar.
+          {approveProposals.error instanceof Error
+            ? approveProposals.error.message
+            : "No se pudieron aprobar las propuestas. Verificá tus permisos antes de volver a intentar."}
         </div>
       )}
 
       {productsQuery.isLoading ? (
-        <CenteredMessage message="Calculando propuestas…" />
+        <CenteredMessage message="Cargando propuestas…" />
       ) : productsQuery.error ? (
-        <CenteredMessage message="No se pudieron cargar costos y precios. Verificá tus permisos." />
+        <CenteredMessage message="No se pudieron cargar las propuestas. Verificá tus permisos." />
       ) : (
         <div className="overflow-x-auto border border-black/10 bg-white">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <thead className="border-b border-black/10 bg-black/[0.03] text-[10px] uppercase tracking-[0.16em] text-black/50">
               <tr>
                 <th className="px-4 py-3">Producto</th>
@@ -1076,53 +994,65 @@ function ProductDiscountManager() {
                 <th className="px-4 py-3">Precio lista</th>
                 <th className="px-4 py-3">Propuesta</th>
                 <th className="px-4 py-3">Descuento</th>
+                <th className="px-4 py-3">Margen</th>
+                <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/10">
-              {products.map((product) => {
-                const proposal = calculateDiscountProposal(product);
-                const currentDiscount = Number(product.discount_percent ?? 0);
-                const isApproved =
-                  proposal && Math.abs(currentDiscount - proposal.discountPercent) < 0.005;
+              {proposals.map((product: EcommerceDiscountProposal) => {
                 const isPending =
-                  updateDiscount.isPending && updateDiscount.variables?.product.id === product.id;
-
+                  approveProposals.isPending &&
+                  approveProposals.variables?.some((item) => item.product_id === product.id);
                 return (
                   <tr key={product.id}>
                     <td className="px-4 py-4">
-                      <span className="block font-semibold">{product.name}</span>
-                      <span className="text-xs text-black/45">{product.sku}</span>
+                      <div className="flex items-center gap-3">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt=""
+                            className="size-11 shrink-0 object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="size-11 shrink-0 bg-black/[0.04]" />
+                        )}
+                        <span>
+                          <span className="block font-semibold">{product.name}</span>
+                          <span className="text-xs text-black/45">{product.sku}</span>
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-4">{formatGs(Number(product.purchase_price))}</td>
                     <td className="px-4 py-4">{formatGs(Number(product.sale_price))}</td>
                     <td className="px-4 py-4 font-semibold">
-                      {proposal ? formatGs(proposal.finalPrice) : "Sin margen"}
+                      {formatGs(Number(product.proposed_price))}
                     </td>
                     <td className="px-4 py-4">
-                      {proposal ? `${proposal.discountPercent.toFixed(0)}% OFF` : "—"}
+                      {Number(product.proposed_discount_percent).toFixed(0)}% OFF
                     </td>
+                    <td className="px-4 py-4">{Number(product.margin_percent).toFixed(1)}%</td>
+                    <td className="px-4 py-4">{Number(product.available_stock)}</td>
                     <td className="px-4 py-4 text-right">
-                      {isApproved ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-                          <CheckCircle2 className="size-4" /> Aprobado
-                        </span>
-                      ) : (
+                      {product.eligible ? (
                         <button
-                          disabled={!proposal || isPending || bulkUpdateDiscounts.isPending}
+                          disabled={isPending || approveProposals.isPending}
                           onClick={() => {
-                            if (!proposal) return;
                             setNotice("");
-                            bulkUpdateDiscounts.reset();
-                            updateDiscount.mutate({
-                              product,
-                              discountPercent: proposal.discountPercent,
-                            });
+                            approveProposals.mutate([
+                              {
+                                product_id: product.id,
+                                discount_percent: Number(product.proposed_discount_percent),
+                              },
+                            ]);
                           }}
                           className="bg-black px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-35"
                         >
                           {isPending ? "Publicando…" : "Aprobar"}
                         </button>
+                      ) : (
+                        <span className="text-xs text-black/45">No elegible</span>
                       )}
                     </td>
                   </tr>
@@ -1130,7 +1060,31 @@ function ProductDiscountManager() {
               })}
             </tbody>
           </table>
-          {products.length === 0 && <CenteredMessage message="No encontramos productos." />}
+          {proposals.length === 0 && <CenteredMessage message="No encontramos propuestas." />}
+        </div>
+      )}
+      {pagination && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-black/55">
+          <span>
+            Página {pagination.page} de {Math.max(1, pagination.pages)} · {pagination.total}{" "}
+            propuestas
+          </span>
+          <div className="flex gap-2">
+            <button
+              disabled={page <= 1 || productsQuery.isFetching}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              className="border border-black/20 px-3 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              Anterior
+            </button>
+            <button
+              disabled={page >= pagination.pages || productsQuery.isFetching}
+              onClick={() => setPage((current) => Math.min(pagination.pages, current + 1))}
+              className="border border-black/20 px-3 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       )}
     </section>

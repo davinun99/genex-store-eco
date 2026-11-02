@@ -226,3 +226,48 @@ export async function updateEcommerceSyncProducts(
     body: { product_ids: productIds, publish },
   });
 }
+
+export type EcommerceDiscountProposal = {
+  id: string;
+  name: string;
+  sku: string;
+  image_url: string | null;
+  sale_price: number;
+  purchase_price: number;
+  available_stock: number;
+  proposed_discount_percent: number;
+  proposed_price: number;
+  margin_percent: number;
+  eligible: boolean;
+};
+
+export type EcommerceDiscountProposalsResponse = {
+  data: EcommerceDiscountProposal[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+};
+
+export async function getEcommerceDiscountProposals(
+  session: Session,
+  params: { page: number; limit?: number; search?: string },
+) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    limit: String(params.limit ?? 20),
+  });
+  if (params.search?.trim()) query.set("search", params.search.trim());
+  return apiRequest<EcommerceDiscountProposalsResponse>(
+    `/ecommerce-discount-proposals?${query}`,
+    { session },
+  );
+}
+
+export async function approveEcommerceDiscountProposals(
+  session: Session,
+  items: Array<{ product_id: string; discount_percent: number }>,
+) {
+  return apiRequest<{ updated: number; rejected: number }>("/ecommerce-discount-proposals", {
+    method: "POST",
+    session,
+    body: { items },
+  });
+}
