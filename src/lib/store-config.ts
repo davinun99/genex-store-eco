@@ -42,6 +42,7 @@ export const BANK_ACCOUNTS: BankAccount[] = [
 ];
 
 export const QUICK_ALIAS = [
-  { label: "Alias por teléfono", value: "0984 849 454" },
-  { label: "Alias por teléfono", value: "0991 314 773" },
+  { label: "Alias por teléfono", name: "Banco Basa", value: "0984 849 454" },
+  { label: "Alias por teléfono", name: "Banco Familiar", value: "0991 314 773" },
+  { label: "Alias por RUC", name: "Banco Itau", value: "5527537-0" },
 ];

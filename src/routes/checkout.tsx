@@ -350,6 +350,9 @@ function Checkout() {
                               <div className="text-xs uppercase tracking-widest text-muted-foreground">
                                 {a.label}
                               </div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                {a.name}
+                              </div>
                               <div className="flex items-center gap-2 font-mono text-sm font-semibold">
                                 {a.value}
                                 <button
