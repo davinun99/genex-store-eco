@@ -1,4 +1,5 @@
 import type { InventarioProduct } from "@/integrations/inventario/client";
+import { roundPriceUpToThousand } from "@/lib/format";
 
 export const PROMOTION = {
   active: true,
@@ -22,15 +23,14 @@ export function getPromotionPrice(
 ): PromotionPrice {
   const listPrice = Number(product.original_unit_price ?? product.sale_price);
   const backendPrice = Number(product.final_price ?? product.unit_price ?? listPrice);
-  const originalPrice = Number.isFinite(listPrice) ? listPrice : 0;
-  const price = Number.isFinite(backendPrice) ? backendPrice : originalPrice;
+  const originalPrice = roundPriceUpToThousand(Number.isFinite(listPrice) ? listPrice : 0);
+  const price = roundPriceUpToThousand(
+    Number.isFinite(backendPrice) ? backendPrice : Number.isFinite(listPrice) ? listPrice : 0,
+  );
   const isPriceCorrection = price > originalPrice;
   const isPromoted = price < originalPrice;
-  const backendDiscount = Number(product.discount_percent);
   const discountPercent = isPromoted
-    ? Number.isFinite(backendDiscount) && backendDiscount > 0
-      ? backendDiscount
-      : Math.round((1 - price / originalPrice) * 10_000) / 100
+    ? Math.round((1 - price / originalPrice) * 10_000) / 100
     : 0;
 
   return {

@@ -339,7 +339,8 @@ function ProductPage() {
               <div className="mt-3 flex items-center gap-2 text-sm">
                 {product.current_stock > 0 ? (
                   <span className="inline-flex items-center gap-2 border border-black/15 px-3 py-1.5 font-semibold">
-                    <PackageCheck className="size-4" /> {product.current_stock} disponibles
+                    <PackageCheck className="size-4" /> {product.current_stock}{" "}
+                    {product.current_stock === 1 ? "disponible" : "disponibles"}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 bg-destructive/15 px-3 py-1 font-semibold text-destructive">
