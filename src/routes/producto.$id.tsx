@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { inventario, type InventarioProduct } from "@/integrations/inventario/client";
 import { getEcommerceProduct } from "@/integrations/inventario/ecommerce-api";
@@ -10,7 +10,27 @@ import { formatGs } from "@/lib/format";
 import { STORE } from "@/lib/store-config";
 import { getPromotionPrice } from "@/lib/promotion";
 import { isStorefrontProduct } from "@/lib/storefront-product";
-import { ArrowLeft, Minus, Plus, ShoppingBag, PackageCheck, PackageX } from "lucide-react";
+import { cacheCatalogProduct, getCachedCatalogProduct } from "@/lib/catalog-product-cache";
+import {
+  getProductIdFromRouteParam,
+  getProductRouteParam,
+  slugifyProductName,
+} from "@/lib/product-url";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  ArrowLeft,
+  Minus,
+  Plus,
+  ShoppingBag,
+  PackageCheck,
+  PackageX,
+  ZoomIn,
+} from "lucide-react";
 import { useState } from "react";
 import {
   calculateDecantPrice,
@@ -24,10 +44,61 @@ async function fetchProduct(id: string): Promise<InventarioProduct | null> {
   return product && product.current_stock > 0 && isStorefrontProduct(product) ? product : null;
 }
 
+async function fetchProductBySlug(slug: string): Promise<InventarioProduct | null> {
+  const pageSize = 1000;
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await inventario
+      .from("products")
+      .select("id,name,sku")
+      .eq("is_active", true)
+      .gt("current_stock", 0)
+      .order("id")
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    const match = (data ?? []).find(
+      (product) => slugifyProductName(product.name) === slug && isStorefrontProduct(product),
+    );
+    if (match) return fetchProduct(match.id);
+    if (!data || data.length < pageSize) return null;
+  }
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export const Route = createFileRoute("/producto/$id")({
-  loader: async ({ params }) => fetchProduct(params.id),
+  loader: async ({ params }) => {
+    const legacyId = getProductIdFromRouteParam(params.id);
+    const isLegacyUrl = legacyId !== params.id || isUuid(params.id);
+    const cachedProduct =
+      !isLegacyUrl && typeof window !== "undefined"
+        ? getCachedCatalogProduct(params.id)
+        : undefined;
+    const product = isLegacyUrl
+      ? await fetchProduct(legacyId)
+      : cachedProduct ?? (await fetchProductBySlug(params.id));
+    if (!product) return null;
+
+    if (typeof window !== "undefined") cacheCatalogProduct(product);
+
+    const friendlyParam = getProductRouteParam(product.name);
+    if (params.id !== friendlyParam) {
+      throw redirect({
+        to: "/producto/$id",
+        params: { id: friendlyParam },
+        replace: true,
+      });
+    }
+
+    return product;
+  },
   head: ({ loaderData: product, params }) => {
-    const url = `${STORE.url}/producto/${params.id}`;
+    const routeParam = product ? getProductRouteParam(product.name) : params.id;
+    const url = `${STORE.url}/producto/${routeParam}`;
 
     if (!product) {
       return {
@@ -152,7 +223,6 @@ function ProductLoadError({ error }: { error: unknown }) {
 function ProductPage() {
   const product = Route.useLoaderData();
   const navigate = useNavigate();
-  const router = useRouter();
   const { addItem, setOpen } = useCart();
   const [qty, setQty] = useState(1);
   const [selectedSizeMl, setSelectedSizeMl] = useState<number | null>(null);
@@ -188,19 +258,14 @@ function ProductPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:h-[calc(100dvh-72px)] lg:px-8 lg:py-5">
-        <button
-          onClick={() => {
-            if (router.history.canGoBack()) {
-              router.history.back();
-            } else {
-              navigate({ to: "/" });
-            }
-          }}
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <Link
+          to="/"
+          replace
           className="mb-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground transition hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> Volver al catálogo
-        </button>
+        </Link>
 
         {!product ? (
           <StoreError
@@ -210,18 +275,44 @@ function ProductPage() {
             actionLabel="Volver al catálogo"
           />
         ) : (
-          <div className="grid gap-7 lg:h-[calc(100%-36px)] lg:grid-cols-[0.9fr_1.1fr] lg:gap-10">
-            <div className="flex h-[min(42dvh,360px)] items-center justify-center overflow-hidden bg-white lg:aspect-square lg:h-auto lg:max-h-[500px] lg:self-center">
+          <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
+            <div className="mx-auto w-full max-w-[620px]">
               {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="h-full w-full object-contain"
-                />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="group relative flex aspect-square w-full items-center justify-center overflow-hidden border border-black/10 bg-[#f4f4f2]"
+                      aria-label={`Ampliar imagen de ${product.name}`}
+                    >
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="h-full w-full object-contain p-5 transition-transform duration-300 group-hover:scale-[1.03] sm:p-8"
+                      />
+                      <span className="absolute bottom-4 right-4 inline-flex items-center gap-2 bg-white/95 px-3 py-2 text-xs font-semibold text-black shadow-sm">
+                        <ZoomIn className="size-4" /> Ampliar imagen
+                      </span>
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-5xl border-black/10 bg-[#f4f4f2] p-3 sm:p-6">
+                    <DialogTitle className="sr-only">Imagen ampliada: {product.name}</DialogTitle>
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="max-h-[82dvh] w-full object-contain"
+                    />
+                  </DialogContent>
+                </Dialog>
               ) : (
-                <span className="font-display text-[10rem] font-bold text-black/10">
-                  {product.name.charAt(0).toUpperCase()}
-                </span>
+                <div className="flex aspect-square w-full flex-col items-center justify-center gap-3 border border-black/10 bg-[#f4f4f2]">
+                  <span className="font-display text-8xl font-bold text-black/10">
+                    {product.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Imagen no disponible
+                  </span>
+                </div>
               )}
             </div>
 

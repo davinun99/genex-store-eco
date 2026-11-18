@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useCart } from "@/contexts/cart-context";
 import { getCartItemKey } from "@/lib/cart-item";
 import { formatGs } from "@/lib/format";
+import { getProductRouteParam } from "@/lib/product-url";
 import { Minus, Plus, Trash2, X, ShoppingBag } from "lucide-react";
 
 export function CartDrawer() {
@@ -41,7 +42,7 @@ export function CartDrawer() {
                   <li key={itemKey} className="flex gap-3 py-4">
                     <Link
                       to="/producto/$id"
-                      params={{ id: item.id }}
+                      params={{ id: getProductRouteParam(item.name) }}
                       onClick={() => setOpen(false)}
                       className="flex size-20 shrink-0 items-center justify-center overflow-hidden bg-[#f4f4f2] font-display text-lg font-bold text-muted-foreground"
                       aria-label={`Ver ${item.name}`}
@@ -59,7 +60,7 @@ export function CartDrawer() {
                     <div className="flex-1">
                       <Link
                         to="/producto/$id"
-                        params={{ id: item.id }}
+                        params={{ id: getProductRouteParam(item.name) }}
                         onClick={() => setOpen(false)}
                         className="line-clamp-2 text-sm font-semibold leading-snug hover:underline"
                       >
