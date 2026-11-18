@@ -1,8 +1,9 @@
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { inventario, type InventarioProduct } from "@/integrations/inventario/client";
-import { getEcommerceProduct } from "@/integrations/inventario/ecommerce-api";
+import { getEcommerceProduct, getEcommerceProducts } from "@/integrations/inventario/ecommerce-api";
 import { Header } from "@/components/header";
+import { ProductCard } from "@/components/product-card";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
 import { useCart } from "@/contexts/cart-context";
@@ -16,21 +17,8 @@ import {
   getProductRouteParam,
   slugifyProductName,
 } from "@/lib/product-url";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  ArrowLeft,
-  Minus,
-  Plus,
-  ShoppingBag,
-  PackageCheck,
-  PackageX,
-  ZoomIn,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, Minus, Plus, ShoppingBag, PackageCheck, PackageX, ZoomIn } from "lucide-react";
 import { useState } from "react";
 import {
   calculateDecantPrice,
@@ -80,7 +68,7 @@ export const Route = createFileRoute("/producto/$id")({
         : undefined;
     const product = isLegacyUrl
       ? await fetchProduct(legacyId)
-      : cachedProduct ?? (await fetchProductBySlug(params.id));
+      : (cachedProduct ?? (await fetchProductBySlug(params.id)));
     if (!product) return null;
 
     if (typeof window !== "undefined") cacheCatalogProduct(product);
@@ -241,6 +229,27 @@ function ProductPage() {
     },
   });
 
+  const relatedProductsQuery = useQuery({
+    queryKey: ["related-products", product?.category_id, product?.id],
+    enabled: Boolean(product?.category_id),
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { items } = await getEcommerceProducts({
+        categoryId: product!.category_id,
+        page: 1,
+        limit: 12,
+      });
+      return items
+        .filter(
+          (candidate) =>
+            candidate.id !== product!.id &&
+            candidate.current_stock > 0 &&
+            isStorefrontProduct(candidate),
+        )
+        .slice(0, 8);
+    },
+  });
+
   const isPerfume = product ? isPerfumeProduct(categoryQuery.data, product.name) : false;
   const bottleVolumeMl = product ? getBottleVolumeMl(product.name, product.description) : 100;
   const promotion = product ? getPromotionPrice(product) : null;
@@ -275,177 +284,204 @@ function ProductPage() {
             actionLabel="Volver al catálogo"
           />
         ) : (
-          <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
-            <div className="mx-auto w-full max-w-[620px]">
-              {product.image_url ? (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <button
-                      type="button"
-                      className="group relative flex aspect-square w-full items-center justify-center overflow-hidden border border-black/10 bg-[#f4f4f2]"
-                      aria-label={`Ampliar imagen de ${product.name}`}
-                    >
+          <>
+            <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
+              <div className="mx-auto w-full max-w-[620px]">
+                {product.image_url ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="group relative flex aspect-square w-full items-center justify-center overflow-hidden border border-black/10 bg-[#f4f4f2]"
+                        aria-label={`Ampliar imagen de ${product.name}`}
+                      >
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="h-full w-full object-contain p-5 transition-transform duration-300 group-hover:scale-[1.03] sm:p-8"
+                        />
+                        <span className="absolute bottom-4 right-4 inline-flex items-center gap-2 bg-white/95 px-3 py-2 text-xs font-semibold text-black shadow-sm">
+                          <ZoomIn className="size-4" /> Ampliar imagen
+                        </span>
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-5xl border-black/10 bg-[#f4f4f2] p-3 sm:p-6">
+                      <DialogTitle className="sr-only">Imagen ampliada: {product.name}</DialogTitle>
                       <img
                         src={product.image_url}
                         alt={product.name}
-                        className="h-full w-full object-contain p-5 transition-transform duration-300 group-hover:scale-[1.03] sm:p-8"
+                        className="max-h-[82dvh] w-full object-contain"
                       />
-                      <span className="absolute bottom-4 right-4 inline-flex items-center gap-2 bg-white/95 px-3 py-2 text-xs font-semibold text-black shadow-sm">
-                        <ZoomIn className="size-4" /> Ampliar imagen
-                      </span>
-                    </button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-5xl border-black/10 bg-[#f4f4f2] p-3 sm:p-6">
-                    <DialogTitle className="sr-only">Imagen ampliada: {product.name}</DialogTitle>
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="max-h-[82dvh] w-full object-contain"
-                    />
-                  </DialogContent>
-                </Dialog>
-              ) : (
-                <div className="flex aspect-square w-full flex-col items-center justify-center gap-3 border border-black/10 bg-[#f4f4f2]">
-                  <span className="font-display text-8xl font-bold text-black/10">
-                    {product.name.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    Imagen no disponible
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col lg:justify-center">
-              <h1 className="font-display text-3xl font-bold uppercase leading-[0.98] tracking-[-0.055em] sm:text-4xl xl:text-5xl">
-                {product.name}
-              </h1>
-              <div className="mt-4 flex flex-wrap items-end gap-3">
-                <div className="font-display text-3xl font-bold text-black xl:text-4xl">
-                  {formatGs(selectedPrice)}
-                </div>
-                {promotion?.isPromoted && (
-                  <>
-                    <div className="pb-1 text-base text-muted-foreground line-through">
-                      {formatGs(selectedOriginalPrice)}
-                    </div>
-                    <span className="mb-1 bg-[#f7e600] px-2 py-1 text-xs font-bold text-black">
-                      {promotion.discountPercent.toFixed(0)}% OFF
-                    </span>
-                  </>
-                )}
-              </div>
-
-              <div className="mt-3 flex items-center gap-2 text-sm">
-                {product.current_stock > 0 ? (
-                  <span className="inline-flex items-center gap-2 border border-black/15 px-3 py-1.5 font-semibold">
-                    <PackageCheck className="size-4" /> {product.current_stock}{" "}
-                    {product.current_stock === 1 ? "disponible" : "disponibles"}
-                  </span>
+                    </DialogContent>
+                  </Dialog>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 bg-destructive/15 px-3 py-1 font-semibold text-destructive">
-                    <PackageX className="size-3.5" /> Sin stock
-                  </span>
+                  <div className="flex aspect-square w-full flex-col items-center justify-center gap-3 border border-black/10 bg-[#f4f4f2]">
+                    <span className="font-display text-8xl font-bold text-black/10">
+                      {product.name.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Imagen no disponible
+                    </span>
+                  </div>
                 )}
               </div>
 
-              {product.description && (
-                <p className="mt-4 line-clamp-3 border-t border-black/10 pt-4 text-sm leading-6 text-muted-foreground xl:line-clamp-4">
-                  {product.description}
-                </p>
-              )}
-
-              {product.current_stock > 0 && (
-                <div className="mt-5 border border-black/15 p-4 xl:p-5">
-                  {isPerfume && (
-                    <fieldset className="mb-5 border-b border-black/10 pb-5">
-                      <legend className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Elegí la presentación
-                      </legend>
-                      <div className="mt-2 grid grid-cols-3 gap-2">
-                        <PresentationButton
-                          label={`Completo · ${bottleVolumeMl} ml`}
-                          price={promotion!.price}
-                          selected={selectedSizeMl === null}
-                          onClick={() => setSelectedSizeMl(null)}
-                        />
-                        {DECANT_SIZES.map((sizeMl) => (
-                          <PresentationButton
-                            key={sizeMl}
-                            label={`${sizeMl} ml`}
-                            price={calculateDecantPrice(promotion!.price, bottleVolumeMl, sizeMl)}
-                            selected={selectedSizeMl === sizeMl}
-                            onClick={() => setSelectedSizeMl(sizeMl)}
-                          />
-                        ))}
-                      </div>
-                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        Los tamaños de 5 ml y 10 ml se entregan fraccionados en atomizador.
-                      </p>
-                    </fieldset>
-                  )}
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Cantidad
-                      </p>
-                      <div className="mt-2 inline-flex items-center border border-black">
-                        <button
-                          onClick={() => setQty((q) => Math.max(1, q - 1))}
-                          className="grid size-10 place-items-center transition hover:bg-black hover:text-white"
-                          aria-label="Restar una unidad"
-                        >
-                          <Minus className="size-4" />
-                        </button>
-                        <span className="min-w-11 text-center text-sm font-bold">{qty}</span>
-                        <button
-                          onClick={() => setQty((q) => Math.min(product.current_stock, q + 1))}
-                          className="grid size-10 place-items-center transition hover:bg-black hover:text-white disabled:opacity-30"
-                          disabled={qty >= product.current_stock}
-                          aria-label="Sumar una unidad"
-                        >
-                          <Plus className="size-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Total
-                      </p>
-                      <p className="mt-2 font-display text-xl font-bold">
-                        {formatGs(selectedPrice * qty)}
-                      </p>
-                    </div>
+              <div className="flex flex-col lg:justify-center">
+                <h1 className="font-display text-3xl font-bold uppercase leading-[0.98] tracking-[-0.055em] sm:text-4xl xl:text-5xl">
+                  {product.name}
+                </h1>
+                <div className="mt-4 flex flex-wrap items-end gap-3">
+                  <div className="font-display text-3xl font-bold text-black xl:text-4xl">
+                    {formatGs(selectedPrice)}
                   </div>
-
-                  <button
-                    onClick={() => {
-                      addItem(
-                        {
-                          id: product.id,
-                          name: product.name,
-                          price: selectedPrice,
-                          originalPrice:
-                            selectedPrice < selectedOriginalPrice
-                              ? selectedOriginalPrice
-                              : undefined,
-                          stock: product.current_stock,
-                          sku: product.sku,
-                          imageUrl: product.image_url,
-                          sizeMl: selectedSizeMl ?? undefined,
-                        },
-                        qty,
-                      );
-                      setOpen(true);
-                    }}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-black bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-black"
-                  >
-                    <ShoppingBag className="size-4" /> Agregar al carrito
-                  </button>
+                  {promotion?.isPromoted && (
+                    <>
+                      <div className="pb-1 text-base text-muted-foreground line-through">
+                        {formatGs(selectedOriginalPrice)}
+                      </div>
+                      <span className="mb-1 bg-[#f7e600] px-2 py-1 text-xs font-bold text-black">
+                        {promotion.discountPercent.toFixed(0)}% OFF
+                      </span>
+                    </>
+                  )}
                 </div>
-              )}
+
+                <div className="mt-3 flex items-center gap-2 text-sm">
+                  {product.current_stock > 0 ? (
+                    <span className="inline-flex items-center gap-2 border border-black/15 px-3 py-1.5 font-semibold">
+                      <PackageCheck className="size-4" /> {product.current_stock}{" "}
+                      {product.current_stock === 1 ? "disponible" : "disponibles"}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 bg-destructive/15 px-3 py-1 font-semibold text-destructive">
+                      <PackageX className="size-3.5" /> Sin stock
+                    </span>
+                  )}
+                </div>
+
+                {product.description && (
+                  <p className="mt-4 line-clamp-3 border-t border-black/10 pt-4 text-sm leading-6 text-muted-foreground xl:line-clamp-4">
+                    {product.description}
+                  </p>
+                )}
+
+                {product.current_stock > 0 && (
+                  <div className="mt-5 border border-black/15 p-4 xl:p-5">
+                    {isPerfume && (
+                      <fieldset className="mb-5 border-b border-black/10 pb-5">
+                        <legend className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Elegí la presentación
+                        </legend>
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                          <PresentationButton
+                            label={`Completo · ${bottleVolumeMl} ml`}
+                            price={promotion!.price}
+                            selected={selectedSizeMl === null}
+                            onClick={() => setSelectedSizeMl(null)}
+                          />
+                          {DECANT_SIZES.map((sizeMl) => (
+                            <PresentationButton
+                              key={sizeMl}
+                              label={`${sizeMl} ml`}
+                              price={calculateDecantPrice(promotion!.price, bottleVolumeMl, sizeMl)}
+                              selected={selectedSizeMl === sizeMl}
+                              onClick={() => setSelectedSizeMl(sizeMl)}
+                            />
+                          ))}
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                          Los tamaños de 5 ml y 10 ml se entregan fraccionados en atomizador.
+                        </p>
+                      </fieldset>
+                    )}
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Cantidad
+                        </p>
+                        <div className="mt-2 inline-flex items-center border border-black">
+                          <button
+                            onClick={() => setQty((q) => Math.max(1, q - 1))}
+                            className="grid size-10 place-items-center transition hover:bg-black hover:text-white"
+                            aria-label="Restar una unidad"
+                          >
+                            <Minus className="size-4" />
+                          </button>
+                          <span className="min-w-11 text-center text-sm font-bold">{qty}</span>
+                          <button
+                            onClick={() => setQty((q) => Math.min(product.current_stock, q + 1))}
+                            className="grid size-10 place-items-center transition hover:bg-black hover:text-white disabled:opacity-30"
+                            disabled={qty >= product.current_stock}
+                            aria-label="Sumar una unidad"
+                          >
+                            <Plus className="size-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Total
+                        </p>
+                        <p className="mt-2 font-display text-xl font-bold">
+                          {formatGs(selectedPrice * qty)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        addItem(
+                          {
+                            id: product.id,
+                            name: product.name,
+                            price: selectedPrice,
+                            originalPrice:
+                              selectedPrice < selectedOriginalPrice
+                                ? selectedOriginalPrice
+                                : undefined,
+                            stock: product.current_stock,
+                            sku: product.sku,
+                            imageUrl: product.image_url,
+                            sizeMl: selectedSizeMl ?? undefined,
+                          },
+                          qty,
+                        );
+                        setOpen(true);
+                      }}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-black bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-black"
+                    >
+                      <ShoppingBag className="size-4" /> Agregar al carrito
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+            {(relatedProductsQuery.data?.length ?? 0) > 0 && (
+              <section
+                className="mt-16 border-t border-black/10 pt-10"
+                aria-labelledby="related-products-title"
+              >
+                <div className="mb-6 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Seguí explorando
+                    </p>
+                    <h2
+                      id="related-products-title"
+                      className="mt-2 font-display text-2xl font-bold uppercase tracking-tight sm:text-3xl"
+                    >
+                      Productos relacionados
+                    </h2>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+                  {relatedProductsQuery.data?.map((relatedProduct) => (
+                    <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>
