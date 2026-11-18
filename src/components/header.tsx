@@ -1,8 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Search } from "lucide-react";
-import type { FormEvent } from "react";
+import { ShoppingBag, Search, UserRound } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useCart } from "@/contexts/cart-context";
 import { STORE } from "@/lib/store-config";
+import { inventario } from "@/integrations/inventario/client";
+import { signInWithGoogle } from "@/integrations/lovable";
+import { PROMOTION } from "@/lib/promotion";
 
 interface HeaderProps {
   onSearch?: (v: string) => void;
@@ -12,6 +15,25 @@ interface HeaderProps {
 
 export function Header({ onSearch, onSearchSubmit, searchValue }: HeaderProps) {
   const { totalItems, setOpen } = useCart();
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    void inventario.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
+    const { data } = inventario.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  const startGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle("/cuenta");
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "No pudimos iniciar sesión con Google.",
+      );
+    }
+  };
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -20,8 +42,8 @@ export function Header({ onSearch, onSearchSubmit, searchValue }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur-md">
-      <div className="bg-[#ff3b30] px-4 py-2 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white sm:text-xs">
-        Hasta 30% OFF en toda la tienda · Por tiempo limitado
+      <div className="bg-brand px-4 py-2 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-brand-foreground sm:text-xs sm:tracking-[0.18em]">
+        {PROMOTION.headline}
       </div>
       <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
@@ -73,6 +95,25 @@ export function Header({ onSearch, onSearchSubmit, searchValue }: HeaderProps) {
             </span>
           )}
         </button>
+        {signedIn ? (
+          <Link
+            to="/cuenta"
+            aria-label="Mi cuenta y mis pedidos"
+            className="inline-flex h-10 items-center gap-2 border border-black/20 px-3 text-sm font-semibold transition hover:border-black"
+          >
+            <UserRound className="size-4" />
+            <span className="hidden sm:inline">Mi cuenta</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void startGoogleSignIn()}
+            className="inline-flex h-10 items-center gap-2 border border-black/20 px-3 text-sm font-semibold transition hover:border-black"
+          >
+            <UserRound className="size-4" />
+            <span className="hidden sm:inline">Ingresar</span>
+          </button>
+        )}
       </div>
 
       {onSearch && (

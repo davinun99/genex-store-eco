@@ -104,15 +104,28 @@ export async function uploadOrderReceipt(file: File) {
   return String(receiptPath);
 }
 
-export async function createEcommerceOrder(body: Record<string, unknown>) {
+export async function createEcommerceOrder(body: Record<string, unknown>, session?: Session) {
   const payload = await apiRequest<Record<string, unknown>>("/ecommerce-orders", {
     method: "POST",
+    session,
     body,
   });
   const data = payload.data as Record<string, unknown> | undefined;
   const order = (payload.order ?? data ?? payload) as Record<string, unknown>;
   if (!order.order_number) throw new Error("El backend no devolvió el número del pedido.");
   return order as { id?: string; order_number: string; status?: string; total_amount?: number };
+}
+
+export async function sendEcommerceOrderEmails(orderId: string) {
+  return apiRequest<{ success: boolean }>("/order-emails", {
+    method: "POST",
+    body: { order_id: orderId },
+  });
+}
+
+export async function getMyEcommerceOrders(session: Session) {
+  const payload = await apiRequest<unknown>("/ecommerce-orders?page=1&limit=100", { session });
+  return getArray<EcommerceOrder>(payload, ["orders", "items"]);
 }
 
 export type EcommerceMe = {
@@ -255,10 +268,9 @@ export async function getEcommerceDiscountProposals(
     limit: String(params.limit ?? 20),
   });
   if (params.search?.trim()) query.set("search", params.search.trim());
-  return apiRequest<EcommerceDiscountProposalsResponse>(
-    `/ecommerce-discount-proposals?${query}`,
-    { session },
-  );
+  return apiRequest<EcommerceDiscountProposalsResponse>(`/ecommerce-discount-proposals?${query}`, {
+    session,
+  });
 }
 
 export async function approveEcommerceDiscountProposals(

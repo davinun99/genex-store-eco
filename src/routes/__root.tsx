@@ -16,6 +16,8 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { STORE } from "@/lib/store-config";
 import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
+import { inventario } from "@/integrations/inventario/client";
+import { POST_LOGIN_PATH_KEY } from "@/integrations/lovable";
 
 function NotFoundComponent() {
   return (
@@ -141,9 +143,38 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
+        <AuthReturnHandler />
         <Outlet />
         <CartDrawer />
       </CartProvider>
     </QueryClientProvider>
   );
+}
+
+function AuthReturnHandler() {
+  useEffect(() => {
+    let active = true;
+    const redirectAfterSession = async (confirmedSession = false) => {
+      const path = sessionStorage.getItem(POST_LOGIN_PATH_KEY);
+      if (path !== "/cuenta" && path !== "/checkout") return;
+      if (!confirmedSession) {
+        const { data } = await inventario.auth.getSession();
+        if (!active || !data.session) return;
+      }
+      if (!active) return;
+      sessionStorage.removeItem(POST_LOGIN_PATH_KEY);
+      window.location.replace(path);
+    };
+
+    void redirectAfterSession();
+    const { data } = inventario.auth.onAuthStateChange((_event, session) => {
+      if (session) void redirectAfterSession(true);
+    });
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  return null;
 }

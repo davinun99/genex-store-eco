@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductoIdRouteImport } from './routes/producto.$id'
 import { Route as GraciasOrderNumberRouteImport } from './routes/gracias.$orderNumber'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 
+const CuentaRoute = CuentaRouteImport.update({
+  id: '/cuenta',
+  path: '/cuenta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -44,6 +50,7 @@ const AdminProductosRoute = AdminProductosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
+  '/cuenta': typeof CuentaRoute
   '/admin/productos': typeof AdminProductosRoute
   '/gracias/$orderNumber': typeof GraciasOrderNumberRoute
   '/producto/$id': typeof ProductoIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
+  '/cuenta': typeof CuentaRoute
   '/admin/productos': typeof AdminProductosRoute
   '/gracias/$orderNumber': typeof GraciasOrderNumberRoute
   '/producto/$id': typeof ProductoIdRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
+  '/cuenta': typeof CuentaRoute
   '/admin/productos': typeof AdminProductosRoute
   '/gracias/$orderNumber': typeof GraciasOrderNumberRoute
   '/producto/$id': typeof ProductoIdRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/checkout'
+    | '/cuenta'
     | '/admin/productos'
     | '/gracias/$orderNumber'
     | '/producto/$id'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/checkout'
+    | '/cuenta'
     | '/admin/productos'
     | '/gracias/$orderNumber'
     | '/producto/$id'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/checkout'
+    | '/cuenta'
     | '/admin/productos'
     | '/gracias/$orderNumber'
     | '/producto/$id'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckoutRoute: typeof CheckoutRoute
+  CuentaRoute: typeof CuentaRoute
   AdminProductosRoute: typeof AdminProductosRoute
   GraciasOrderNumberRoute: typeof GraciasOrderNumberRoute
   ProductoIdRoute: typeof ProductoIdRoute
@@ -97,6 +110,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/cuenta': {
+      id: '/cuenta'
+      path: '/cuenta'
+      fullPath: '/cuenta'
+      preLoaderRoute: typeof CuentaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout': {
       id: '/checkout'
       path: '/checkout'
@@ -138,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckoutRoute: CheckoutRoute,
+  CuentaRoute: CuentaRoute,
   AdminProductosRoute: AdminProductosRoute,
   GraciasOrderNumberRoute: GraciasOrderNumberRoute,
   ProductoIdRoute: ProductoIdRoute,
