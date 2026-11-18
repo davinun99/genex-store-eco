@@ -14,6 +14,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductoIdRouteImport } from './routes/producto.$id'
 import { Route as GraciasOrderNumberRouteImport } from './routes/gracias.$orderNumber'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 
 const CuentaRoute = CuentaRouteImport.update({
@@ -41,6 +42,11 @@ const GraciasOrderNumberRoute = GraciasOrderNumberRouteImport.update({
   path: '/gracias/$orderNumber',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminProductosRoute = AdminProductosRouteImport.update({
   id: '/admin/productos',
   path: '/admin/productos',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/cuenta': typeof CuentaRoute
   '/admin/productos': typeof AdminProductosRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/gracias/$orderNumber': typeof GraciasOrderNumberRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/cuenta': typeof CuentaRoute
   '/admin/productos': typeof AdminProductosRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/gracias/$orderNumber': typeof GraciasOrderNumberRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/cuenta': typeof CuentaRoute
   '/admin/productos': typeof AdminProductosRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/gracias/$orderNumber': typeof GraciasOrderNumberRoute
   '/producto/$id': typeof ProductoIdRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/cuenta'
     | '/admin/productos'
+    | '/auth/callback'
     | '/gracias/$orderNumber'
     | '/producto/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/cuenta'
     | '/admin/productos'
+    | '/auth/callback'
     | '/gracias/$orderNumber'
     | '/producto/$id'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/cuenta'
     | '/admin/productos'
+    | '/auth/callback'
     | '/gracias/$orderNumber'
     | '/producto/$id'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   CuentaRoute: typeof CuentaRoute
   AdminProductosRoute: typeof AdminProductosRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   GraciasOrderNumberRoute: typeof GraciasOrderNumberRoute
   ProductoIdRoute: typeof ProductoIdRoute
 }
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GraciasOrderNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/productos': {
       id: '/admin/productos'
       path: '/admin/productos'
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   CuentaRoute: CuentaRoute,
   AdminProductosRoute: AdminProductosRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   GraciasOrderNumberRoute: GraciasOrderNumberRoute,
   ProductoIdRoute: ProductoIdRoute,
 }
