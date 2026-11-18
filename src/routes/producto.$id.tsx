@@ -339,7 +339,7 @@ function ProductPage() {
                       <div className="pb-1 text-base text-muted-foreground line-through">
                         {formatGs(selectedOriginalPrice)}
                       </div>
-                      <span className="mb-1 bg-[#f7e600] px-2 py-1 text-xs font-bold text-black">
+                      <span className="mb-1 bg-brand px-2 py-1 text-xs font-bold text-brand-foreground">
                         {promotion.discountPercent.toFixed(0)}% OFF
                       </span>
                     </>

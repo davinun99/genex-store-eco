@@ -6,7 +6,7 @@
 
 /*
  * Genex Store design system.
- * Brand: monochrome, direct and minimal to match the GENEX wordmark.
+ * Brand: black, white and GENEX blue.
  */
 
 @theme inline {
@@ -66,9 +66,9 @@
   --primary: oklch(0.18 0.02 70);
   --primary-foreground: oklch(0.985 0.005 95);
 
-  /* Brand accent — electric lime/yellow */
-  --brand: oklch(0.08 0 0);
-  --brand-foreground: oklch(1 0 0);
+  /* GENEX brand blue */
+  --brand: #0047ab;
+  --brand-foreground: #fff;
 
   --secondary: oklch(0.94 0.01 90);
   --secondary-foreground: oklch(0.2 0.02 70);
@@ -80,7 +80,7 @@
   --destructive-foreground: oklch(0.985 0.005 95);
   --border: oklch(0.9 0.01 90);
   --input: oklch(0.92 0.01 90);
-  --ring: oklch(0.08 0 0);
+  --ring: #0047ab;
 }
 
 .dark {
@@ -95,19 +95,19 @@
   --popover-foreground: oklch(0.97 0.008 95);
   --primary: oklch(0.97 0.008 95);
   --primary-foreground: oklch(0.18 0.02 70);
-  --brand: oklch(0.86 0.19 110);
-  --brand-foreground: oklch(0.18 0.02 70);
+  --brand: #0047ab;
+  --brand-foreground: #fff;
   --secondary: oklch(0.26 0.018 75);
   --secondary-foreground: oklch(0.97 0.008 95);
   --muted: oklch(0.26 0.018 75);
   --muted-foreground: oklch(0.7 0.015 80);
-  --accent: oklch(0.3 0.04 110);
+  --accent: oklch(0.3 0.04 260);
   --accent-foreground: oklch(0.97 0.008 95);
   --destructive: oklch(0.7 0.19 22);
   --destructive-foreground: oklch(0.18 0.02 70);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.15 110);
+  --ring: oklch(0.7 0.15 260);
 }
 
 @layer base {

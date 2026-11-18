@@ -255,16 +255,16 @@ function Home() {
       <section className="relative isolate overflow-hidden border-b border-black bg-[#080808] text-white">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-40 -top-40 size-[30rem] rounded-full bg-[#f7e600]/[0.08] blur-3xl"
+          className="pointer-events-none absolute -right-40 -top-40 size-[30rem] rounded-full bg-brand/[0.12] blur-3xl"
         />
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-24">
           <div>
-            <p className="mb-5 inline-flex items-center gap-2 border border-[#f7e600]/45 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#f7e600] sm:text-xs">
-              <span className="size-1.5 bg-[#f7e600]" /> Black Friday · Paraguay
+            <p className="mb-5 inline-flex items-center gap-2 border border-brand/45 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white sm:text-xs">
+              <span className="size-1.5 bg-brand" /> Black Friday · Paraguay
             </p>
             <h1 className="font-display text-[clamp(2.45rem,8vw,5.75rem)] font-bold leading-[0.9] tracking-[-0.065em]">
               BLACK FRIDAY.
-              <span className="mt-2 block text-[#f7e600]">
+              <span className="mt-2 block text-white">
                 HASTA {PROMOTION.discountPercent}% OFF.
               </span>
             </h1>
@@ -275,7 +275,7 @@ function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#ofertas"
-                className="inline-flex items-center gap-2 border border-[#f7e600] bg-[#f7e600] px-5 py-3 text-sm font-bold text-black transition hover:border-[#e5d600] hover:bg-[#e5d600]"
+                className="inline-flex items-center gap-2 border border-brand bg-brand px-5 py-3 text-sm font-bold text-brand-foreground transition hover:border-[#003a8c] hover:bg-[#003a8c]"
               >
                 Ver ofertas <ArrowRight className="size-4" />
               </a>
@@ -293,17 +293,17 @@ function Home() {
           <div
             role="img"
             aria-label={`Black Friday en Genex Store: hasta ${PROMOTION.discountPercent}% de descuento`}
-            className="relative flex min-h-64 flex-col justify-between overflow-hidden border border-[#f7e600]/40 bg-[#111] p-6 sm:min-h-80 sm:p-9 lg:min-h-[22rem]"
+            className="relative flex min-h-64 flex-col justify-between overflow-hidden border border-brand/40 bg-[#111] p-6 sm:min-h-80 sm:p-9 lg:min-h-[22rem]"
           >
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full border-[24px] border-[#f7e600]/[0.08] sm:size-64"
+              className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full border-[24px] border-brand/[0.12] sm:size-64"
             />
             <p className="relative text-[10px] font-semibold uppercase tracking-[0.28em] text-white/55 sm:text-xs">
               Genex Store · Paraguay
             </p>
             <div className="relative">
-              <div className="font-display text-[clamp(6rem,18vw,11rem)] font-bold leading-[0.75] tracking-[-0.1em] text-[#f7e600]">
+              <div className="font-display text-[clamp(6rem,18vw,11rem)] font-bold leading-[0.75] tracking-[-0.1em] text-white">
                 {PROMOTION.discountPercent}
                 <span className="ml-1 text-[0.58em]">%</span>
               </div>

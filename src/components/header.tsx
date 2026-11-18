@@ -21,7 +21,7 @@ export function Header({ onSearch, onSearchSubmit, searchValue }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur-md">
-      <div className="bg-[#f7e600] px-4 py-2 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-black sm:text-xs sm:tracking-[0.18em]">
+      <div className="bg-brand px-4 py-2 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-brand-foreground sm:text-xs sm:tracking-[0.18em]">
         {PROMOTION.headline}
       </div>
       <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
