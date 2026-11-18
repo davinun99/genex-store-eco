@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Header } from "@/components/header";
 import { StoreSpinner } from "@/components/store-feedback";
@@ -8,7 +8,13 @@ import { useCart } from "@/contexts/cart-context";
 import { formatGs } from "@/lib/format";
 import { getCartItemKey } from "@/lib/cart-item";
 import { BANK_ACCOUNTS, QUICK_ALIAS, STORE } from "@/lib/store-config";
-import { createEcommerceOrder, uploadOrderReceipt } from "@/integrations/inventario/ecommerce-api";
+import {
+  createEcommerceOrder,
+  sendEcommerceOrderEmails,
+  uploadOrderReceipt,
+} from "@/integrations/inventario/ecommerce-api";
+import { inventario } from "@/integrations/inventario/client";
+import { signInWithGoogle } from "@/integrations/lovable";
 import {
   ArrowLeft,
   Building2,
@@ -57,6 +63,39 @@ function Checkout() {
   const [file, setFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [fulfillmentMethod, setFulfillmentMethod] = useState<"pickup" | "delivery">("pickup");
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountSignedIn, setAccountSignedIn] = useState(false);
+
+  useEffect(() => {
+    void inventario.auth.getSession().then(({ data }) => {
+      setAccountSignedIn(Boolean(data.session));
+    });
+    void inventario.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      setAccountEmail(user.email ?? "");
+      setAccountName(String(user.user_metadata.full_name ?? user.user_metadata.name ?? ""));
+    });
+    const { data } = inventario.auth.onAuthStateChange((_event, session) => {
+      setAccountSignedIn(Boolean(session));
+      if (session?.user) {
+        setAccountEmail(session.user.email ?? "");
+        setAccountName(
+          String(session.user.user_metadata.full_name ?? session.user.user_metadata.name ?? ""),
+        );
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  const signInForOrderHistory = async () => {
+    try {
+      await signInWithGoogle("/checkout");
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "No pudimos iniciar sesión con Google.");
+    }
+  };
 
   const copy = (v: string) => {
     navigator.clipboard?.writeText(v);
@@ -72,11 +111,11 @@ function Checkout() {
       setErrorMsg("Tu carrito está vacío.");
       return;
     }
-    if (!file) {
-      setErrorMsg("Adjuntá el comprobante de transferencia.");
+    if (file && !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) {
+      setErrorMsg("El comprobante debe ser JPG, PNG, WEBP o PDF.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (file && file.size > 5 * 1024 * 1024) {
       setErrorMsg("El comprobante no puede superar 5 MB.");
       return;
     }
@@ -99,13 +138,16 @@ function Checkout() {
     setSubmitting(true);
     let orderFallbackUrl: string | null = null;
     try {
-      const receiptPath = await uploadOrderReceipt(file).catch((error: unknown) => {
-        const detail = error instanceof Error ? error.message : "";
-        throw new Error(`No pudimos subir el comprobante: ${detail}`);
-      });
+      const receiptPath = file
+        ? await uploadOrderReceipt(file).catch((error: unknown) => {
+            const detail = error instanceof Error ? error.message : "";
+            throw new Error(`No pudimos subir el comprobante: ${detail}`);
+          })
+        : undefined;
+      const { data: sessionData } = await inventario.auth.getSession();
 
       orderFallbackUrl = `https://wa.me/${STORE.whatsapp}?text=${encodeURIComponent(
-        `¡Hola! Tuve un problema al registrar mi pedido en ${STORE.name}, pero el comprobante se subió correctamente.\n\n` +
+        `¡Hola! Tuve un problema al registrar mi pedido en ${STORE.name}.${file ? " El comprobante se subió correctamente." : ""}\n\n` +
           `Nombre: ${parsed.data.name}\n` +
           `Teléfono: ${parsed.data.phone}\n` +
           `Correo electrónico: ${parsed.data.email}\n` +
@@ -113,36 +155,71 @@ function Checkout() {
           (parsed.data.address ? `Dirección: ${parsed.data.address}\n` : "") +
           `Total: ${formatGs(totalAmount)}\n\n` +
           `Productos:\n${items.map((i) => `• ${i.quantity}x ${i.name}${i.sizeMl ? ` (${i.sizeMl} ml)` : ""}`).join("\n")}\n\n` +
-          "Voy a adjuntar nuevamente el comprobante en este chat.",
+          (file
+            ? "Voy a adjuntar nuevamente el comprobante en este chat."
+            : "No adjunté comprobante."),
       )}`;
 
-      const order = await createEcommerceOrder({
-        customer_name: parsed.data.name,
-        customer_email: parsed.data.email,
-        customer_phone: parsed.data.phone,
-        customer_address:
-          parsed.data.fulfillmentMethod === "delivery" ? (parsed.data.address ?? null) : null,
-        customer_notes: [
-          `Modalidad de entrega: ${parsed.data.fulfillmentMethod === "delivery" ? "Delivery" : "Retiro en tienda"}`,
-          parsed.data.notes,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        payment_method: parsed.data.paymentMethod,
-        receipt_path: receiptPath,
-        idempotency_key: crypto.randomUUID(),
-        items: items.map((i) => ({
-          product_id: i.id,
-          ...(i.sizeMl ? { presentation_ml: i.sizeMl } : {}),
-          quantity: i.quantity,
-          unit_price: i.price,
-          ...(i.originalPrice ? { original_unit_price: i.originalPrice } : {}),
-          promotion: "HASTA_30_OFF",
-        })),
-      }).catch((error: unknown) => {
+      const order = await createEcommerceOrder(
+        {
+          customer_name: parsed.data.name,
+          customer_email: parsed.data.email,
+          customer_phone: parsed.data.phone,
+          customer_address:
+            parsed.data.fulfillmentMethod === "delivery" ? (parsed.data.address ?? null) : null,
+          customer_notes: [
+            `Medio de transferencia: ${parsed.data.paymentMethod}`,
+            `Modalidad de entrega: ${parsed.data.fulfillmentMethod === "delivery" ? "Delivery" : "Retiro en tienda"}`,
+            parsed.data.notes,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          payment_method: "transferencia",
+          ...(receiptPath ? { receipt_path: receiptPath } : {}),
+          idempotency_key: crypto.randomUUID(),
+          items: items.map((i) => ({
+            product_id: i.id,
+            ...(i.sizeMl ? { presentation_ml: i.sizeMl } : {}),
+            quantity: i.quantity,
+            unit_price: i.price,
+            ...(i.originalPrice ? { original_unit_price: i.originalPrice } : {}),
+            promotion: "HASTA_30_OFF",
+          })),
+        },
+        sessionData.session ?? undefined,
+      ).catch((error: unknown) => {
         const detail = error instanceof Error ? error.message : "";
         throw new Error(`No pudimos registrar el pedido: ${detail}`);
       });
+
+      if (order.id) {
+        // El endpoint de correo puede estar desplegándose; no invalida la compra.
+        await sendEcommerceOrderEmails(order.id).catch((emailError: unknown) => {
+          console.warn("No se pudieron enviar los correos del pedido:", emailError);
+        });
+      }
+
+      try {
+        sessionStorage.setItem(
+          `genex_order_${order.order_number}`,
+          JSON.stringify({
+            customer_name: parsed.data.name,
+            customer_email: parsed.data.email,
+            items: items.map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+              unit_price: item.price,
+              presentation_ml: item.sizeMl,
+            })),
+            total_amount: totalAmount,
+            payment_method: "Transferencia",
+            receipt_uploaded: Boolean(receiptPath),
+            created_at: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // La confirmación no depende del almacenamiento local.
+      }
 
       clear();
       navigate({ to: "/gracias/$orderNumber", params: { orderNumber: order.order_number } });
@@ -195,14 +272,35 @@ function Checkout() {
               {/* Datos */}
               <section className="rounded-2xl border border-border bg-[var(--color-surface)] p-6">
                 <h2 className="font-display text-lg font-bold">1. Tus datos</h2>
+                {!accountSignedIn && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => void signInForOrderHistory()}
+                      className="font-semibold text-foreground underline underline-offset-4"
+                    >
+                      Ingresá con Google
+                    </button>{" "}
+                    para guardar esta compra en tu historial.
+                  </p>
+                )}
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <Field label="Nombre completo *" name="name" required maxLength={120} />
+                  <Field
+                    label="Nombre completo *"
+                    name="name"
+                    required
+                    maxLength={120}
+                    value={accountName}
+                    onChange={(event) => setAccountName(event.target.value)}
+                  />
                   <Field
                     label="Correo electrónico *"
                     name="email"
                     type="email"
                     required
                     maxLength={160}
+                    value={accountEmail}
+                    onChange={(event) => setAccountEmail(event.target.value)}
                   />
                   <Field label="Teléfono / WhatsApp *" name="phone" required maxLength={40} />
                   <div className="sm:col-span-2">
@@ -379,9 +477,9 @@ function Checkout() {
 
               {/* Comprobante */}
               <section className="rounded-2xl border border-border bg-[var(--color-surface)] p-6">
-                <h2 className="font-display text-lg font-bold">3. Adjuntá el comprobante</h2>
+                <h2 className="font-display text-lg font-bold">3. Comprobante (opcional)</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Subí la captura o el PDF de la transferencia (hasta 5 MB).
+                  Podés adjuntar una captura o PDF de hasta 5 MB, ahora o después.
                 </p>
                 <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-8 text-center transition hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-strong)]">
                   <Upload className="size-6 text-muted-foreground" />
@@ -394,13 +492,13 @@ function Checkout() {
                     </div>
                   ) : (
                     <div className="text-sm">
-                      <div className="font-semibold">Subir comprobante</div>
-                      <div className="text-xs text-muted-foreground">JPG, PNG o PDF</div>
+                      <div className="font-semibold">Subir comprobante (opcional)</div>
+                      <div className="text-xs text-muted-foreground">JPG, PNG, WEBP o PDF</div>
                     </div>
                   )}
                   <input
                     type="file"
-                    accept="image/*,application/pdf"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
                     className="hidden"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />

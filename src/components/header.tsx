@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Search } from "lucide-react";
-import type { FormEvent } from "react";
+import { ShoppingBag, Search, UserRound } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useCart } from "@/contexts/cart-context";
 import { STORE } from "@/lib/store-config";
+import { inventario } from "@/integrations/inventario/client";
+import { signInWithGoogle } from "@/integrations/lovable";
 
 interface HeaderProps {
   onSearch?: (v: string) => void;
@@ -12,6 +14,25 @@ interface HeaderProps {
 
 export function Header({ onSearch, onSearchSubmit, searchValue }: HeaderProps) {
   const { totalItems, setOpen } = useCart();
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    void inventario.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
+    const { data } = inventario.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  const startGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle("/cuenta");
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "No pudimos iniciar sesión con Google.",
+      );
+    }
+  };
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -73,6 +94,25 @@ export function Header({ onSearch, onSearchSubmit, searchValue }: HeaderProps) {
             </span>
           )}
         </button>
+        {signedIn ? (
+          <Link
+            to="/cuenta"
+            aria-label="Mi cuenta y mis pedidos"
+            className="inline-flex h-10 items-center gap-2 border border-black/20 px-3 text-sm font-semibold transition hover:border-black"
+          >
+            <UserRound className="size-4" />
+            <span className="hidden sm:inline">Mi cuenta</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void startGoogleSignIn()}
+            className="inline-flex h-10 items-center gap-2 border border-black/20 px-3 text-sm font-semibold transition hover:border-black"
+          >
+            <UserRound className="size-4" />
+            <span className="hidden sm:inline">Ingresar</span>
+          </button>
+        )}
       </div>
 
       {onSearch && (
