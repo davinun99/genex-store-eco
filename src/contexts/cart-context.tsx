@@ -12,6 +12,7 @@ import { getCartItemKey } from "@/lib/cart-item";
 import { calculateDecantPrice, getBottleVolumeMl } from "@/lib/perfume-decants";
 import { getPromotionPrice } from "@/lib/promotion";
 import { isStorefrontProduct } from "@/lib/storefront-product";
+import { roundPriceUpToThousand } from "@/lib/format";
 
 export interface CartItem {
   id: string;
@@ -50,7 +51,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) {
+        const storedItems = JSON.parse(raw) as CartItem[];
+        setItems(
+          storedItems.map((item) => ({
+            ...item,
+            price: roundPriceUpToThousand(item.price),
+            originalPrice:
+              item.originalPrice === undefined
+                ? undefined
+                : roundPriceUpToThousand(item.originalPrice),
+          })),
+        );
+      }
     } catch {
       // El carrito puede seguir funcionando aunque el almacenamiento esté bloqueado.
     }

@@ -535,7 +535,7 @@ function Checkout() {
                   <span className="text-sm text-muted-foreground">Total</span>
                   <span className="font-display text-2xl font-bold">{formatGs(totalAmount)}</span>
                 </div>
-                <div className="mt-2 text-right text-xs font-semibold text-[#d21f18]">
+                <div className="mt-2 text-right text-xs font-semibold text-black">
                   Promoción aplicada
                 </div>
 
