@@ -246,6 +246,7 @@ function Checkout() {
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <Link
           to="/"
+          replace
           className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> Seguir comprando
@@ -260,6 +261,7 @@ function Checkout() {
             <p className="text-sm text-muted-foreground">Tu carrito está vacío.</p>
             <Link
               to="/"
+              replace
               className="mt-4 inline-flex rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-primary-foreground)]"
             >
               Ver catálogo
