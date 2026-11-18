@@ -31,6 +31,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
+            replace
             className="inline-flex items-center justify-center border border-black bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-black"
           >
             Volver al inicio
@@ -60,9 +61,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           }}
         />
         <div className="mt-3 text-center">
-          <a href="/" className="text-sm text-muted-foreground underline underline-offset-4">
+          <Link to="/" replace className="text-sm text-muted-foreground underline underline-offset-4">
             Volver al inicio
-          </a>
+          </Link>
         </div>
       </div>
     </div>

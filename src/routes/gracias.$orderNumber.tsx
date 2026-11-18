@@ -121,6 +121,7 @@ function ThankYou() {
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             to="/"
+            replace
             className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:opacity-90"
           >
             <Home className="size-4" /> Volver al inicio
