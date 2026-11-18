@@ -15,7 +15,7 @@ import { StoreError, StoreLoader } from "@/components/store-feedback";
 import { friendlyErrorMessage } from "@/lib/store-errors";
 import { STORE } from "@/lib/store-config";
 import { isStorefrontProduct } from "@/lib/storefront-product";
-import { getPromotionPrice } from "@/lib/promotion";
+import { getPromotionPrice, PROMOTION } from "@/lib/promotion";
 import {
   ArrowRight,
   MessageCircle,
@@ -119,13 +119,16 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: `${STORE.name} — Comprar online en Paraguay` },
+      { title: `${STORE.name} — Black Friday en Paraguay` },
       {
         name: "description",
-        content: `Catálogo de ${STORE.name}: accesorios, vidrios, perfumes y más. Pedidos online con pago por transferencia.`,
+        content: `Black Friday en ${STORE.name}: hasta 30% OFF en productos seleccionados. Explorá tecnología, perfumes, accesorios y más en Paraguay.`,
       },
-      { property: "og:title", content: STORE.name },
-      { property: "og:description", content: STORE.tagline },
+      { property: "og:title", content: `${STORE.name} · Black Friday Paraguay` },
+      {
+        property: "og:description",
+        content: "Hasta 30% OFF en productos seleccionados. Ofertas por tiempo limitado.",
+      },
     ],
     links: [{ rel: "canonical", href: `${STORE.url}/` }],
   }),
@@ -249,27 +252,32 @@ function Home() {
         searchValue={searchInput}
       />
 
-      <section className="border-b border-black bg-black text-white">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
-          <div className="max-w-4xl">
-            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#ff6259]">
-              Promoción por tiempo limitado
+      <section className="relative isolate overflow-hidden border-b border-black bg-[#080808] text-white">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-40 -top-40 size-[30rem] rounded-full bg-[#f7e600]/[0.08] blur-3xl"
+        />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-24">
+          <div>
+            <p className="mb-5 inline-flex items-center gap-2 border border-[#f7e600]/45 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#f7e600] sm:text-xs">
+              <span className="size-1.5 bg-[#f7e600]" /> Black Friday · Paraguay
             </p>
-            <h1 className="font-display text-5xl font-bold leading-[0.92] tracking-[-0.065em] sm:text-7xl lg:text-8xl">
-              HASTA 30% OFF.
-              <br />
-              EN TODA LA TIENDA.
+            <h1 className="font-display text-[clamp(2.45rem,8vw,5.75rem)] font-bold leading-[0.9] tracking-[-0.065em]">
+              BLACK FRIDAY.
+              <span className="mt-2 block text-[#f7e600]">
+                HASTA {PROMOTION.discountPercent}% OFF.
+              </span>
             </h1>
-            <p className="mt-7 max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">
-              Aprovechá precios especiales en productos seleccionados de todas nuestras categorías.
-              El descuento ya aparece aplicado.
+            <p className="mt-7 max-w-xl text-sm leading-relaxed text-white/65 sm:text-base">
+              Aprovechá precios especiales en productos seleccionados de tecnología, perfumes y
+              accesorios. El descuento ya aparece aplicado en cada producto.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
-                href="#catalogo"
-                className="inline-flex items-center gap-2 border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
+                href="#ofertas"
+                className="inline-flex items-center gap-2 border border-[#f7e600] bg-[#f7e600] px-5 py-3 text-sm font-bold text-black transition hover:border-[#e5d600] hover:bg-[#e5d600]"
               >
-                Ver catálogo <ArrowRight className="size-4" />
+                Ver ofertas <ArrowRight className="size-4" />
               </a>
               <a
                 href={`https://wa.me/${STORE.whatsapp}`}
@@ -277,8 +285,35 @@ function Home() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 border border-white/35 px-5 py-3 text-sm font-semibold transition hover:border-white"
               >
-                <MessageCircle className="size-4" /> WhatsApp
+                <MessageCircle className="size-4" /> Consultar por WhatsApp
               </a>
+            </div>
+          </div>
+
+          <div
+            role="img"
+            aria-label={`Black Friday en Genex Store: hasta ${PROMOTION.discountPercent}% de descuento`}
+            className="relative flex min-h-64 flex-col justify-between overflow-hidden border border-[#f7e600]/40 bg-[#111] p-6 sm:min-h-80 sm:p-9 lg:min-h-[22rem]"
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full border-[24px] border-[#f7e600]/[0.08] sm:size-64"
+            />
+            <p className="relative text-[10px] font-semibold uppercase tracking-[0.28em] text-white/55 sm:text-xs">
+              Genex Store · Paraguay
+            </p>
+            <div className="relative">
+              <div className="font-display text-[clamp(6rem,18vw,11rem)] font-bold leading-[0.75] tracking-[-0.1em] text-[#f7e600]">
+                {PROMOTION.discountPercent}
+                <span className="ml-1 text-[0.58em]">%</span>
+              </div>
+              <p className="mt-5 text-xs font-bold uppercase tracking-[0.22em] text-white sm:text-sm">
+                De descuento
+              </p>
+            </div>
+            <div className="relative flex items-center justify-between border-t border-white/15 pt-4 text-[9px] font-semibold uppercase tracking-[0.2em] text-white/45 sm:text-[10px]">
+              <span>Productos seleccionados</span>
+              <span>Por tiempo limitado</span>
             </div>
           </div>
         </div>
@@ -542,13 +577,13 @@ function CategoryShowcase({
           Deslizá para explorar
         </p>
 
-        <div className="order-1 mb-6 flex items-end justify-between gap-4">
+        <div id="ofertas" className="order-1 mb-6 flex scroll-mt-24 items-end justify-between gap-4">
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-              Productos
+              Black Friday · Descuentos activos
             </p>
             <h3 className="font-display text-2xl font-bold uppercase tracking-[-0.04em] sm:text-3xl">
-              Destacados
+              Ofertas destacadas
             </h3>
           </div>
           <div className="flex gap-2">

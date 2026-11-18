@@ -123,7 +123,7 @@ export function CartDrawer() {
               </span>
               <span className="font-display text-xl font-bold">{formatGs(totalAmount)}</span>
             </div>
-            <p className="pb-3 text-center text-xs font-semibold text-[#d21f18]">
+            <p className="pb-3 text-center text-xs font-semibold text-black">
               Promoción aplicada en tu carrito
             </p>
             <Link

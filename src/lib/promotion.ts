@@ -2,7 +2,7 @@ import type { InventarioProduct } from "@/integrations/inventario/client";
 
 export const PROMOTION = {
   active: true,
-  headline: "HASTA 30% OFF EN TODA LA TIENDA",
+  headline: "BLACK FRIDAY · HASTA 30% OFF EN PRODUCTOS SELECCIONADOS",
   discountPercent: 30,
 } as const;
 

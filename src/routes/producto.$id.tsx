@@ -230,7 +230,7 @@ function ProductPage() {
                 {product.name}
               </h1>
               <div className="mt-4 flex flex-wrap items-end gap-3">
-                <div className="font-display text-3xl font-bold text-[#d21f18] xl:text-4xl">
+                <div className="font-display text-3xl font-bold text-black xl:text-4xl">
                   {formatGs(selectedPrice)}
                 </div>
                 {promotion?.isPromoted && (
@@ -238,7 +238,7 @@ function ProductPage() {
                     <div className="pb-1 text-base text-muted-foreground line-through">
                       {formatGs(selectedOriginalPrice)}
                     </div>
-                    <span className="mb-1 bg-[#ff3b30] px-2 py-1 text-xs font-bold text-white">
+                    <span className="mb-1 bg-[#f7e600] px-2 py-1 text-xs font-bold text-black">
                       {promotion.discountPercent.toFixed(0)}% OFF
                     </span>
                   </>
