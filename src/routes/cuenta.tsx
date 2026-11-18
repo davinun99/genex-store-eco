@@ -7,7 +7,7 @@ import { StoreLoader } from "@/components/store-feedback";
 import { formatGs } from "@/lib/format";
 import { inventario } from "@/integrations/inventario/client";
 import { getMyEcommerceOrders, type EcommerceOrder } from "@/integrations/inventario/ecommerce-api";
-import { signInWithGoogle } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/integrations/inventario/auth";
 
 export const Route = createFileRoute("/cuenta")({
   head: () => ({ meta: [{ title: "Mi cuenta — Genex Store" }] }),

@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useCart } from "@/contexts/cart-context";
 import { STORE } from "@/lib/store-config";
 import { inventario } from "@/integrations/inventario/client";
-import { signInWithGoogle } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/integrations/inventario/auth";
 import { PROMOTION } from "@/lib/promotion";
 
 interface HeaderProps {

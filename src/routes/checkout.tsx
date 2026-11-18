@@ -14,7 +14,7 @@ import {
   uploadOrderReceipt,
 } from "@/integrations/inventario/ecommerce-api";
 import { inventario } from "@/integrations/inventario/client";
-import { signInWithGoogle } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/integrations/inventario/auth";
 import {
   ArrowLeft,
   Building2,
